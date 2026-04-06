@@ -1,0 +1,8 @@
+finops_capex:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: warehouse/finops.duckdb
+      threads: 4
+      schema: analytics

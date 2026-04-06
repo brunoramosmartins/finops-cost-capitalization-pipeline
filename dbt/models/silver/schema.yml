@@ -1,0 +1,67 @@
+version: 2
+
+models:
+  - name: stg_cloud_cost_usage
+    description: >
+      Silver staging model that standardizes raw billing columns, normalizes tags,
+      and produces first-pass metadata quality indicators.
+    columns:
+      - name: line_item_id
+        description: Stable billing line identifier from the Bronze layer.
+        tests:
+          - not_null
+          - unique
+      - name: cloud_provider
+        description: Normalized provider name.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['aws']
+      - name: currency_code
+        description: Normalized billing currency.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['USD']
+      - name: line_item_type
+        description: Synthetic billing line type.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Usage', 'Discount', 'Credit']
+      - name: tag_quality_status
+        description: Evaluation of critical tag completeness and validity.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['complete', 'missing_critical_tags', 'invalid_capitalization_flag', 'missing_environment']
+
+  - name: stg_cloud_resource_tags
+    description: Tag-focused Silver view at the billing line grain.
+    columns:
+      - name: line_item_id
+        description: Billing line identifier.
+        tests:
+          - not_null
+          - unique
+
+  - name: int_cost_enriched
+    description: >
+      Intermediate Silver model that enriches staged billing lines with service
+      policy defaults and accounting-oriented signals.
+    columns:
+      - name: line_item_id
+        description: Billing line identifier.
+        tests:
+          - not_null
+          - unique
+      - name: service_family
+        description: Service family from the accounting policy seed.
+      - name: accounting_signal
+        description: High-level reasoning signal passed into Gold classification.
+        tests:
+          - not_null

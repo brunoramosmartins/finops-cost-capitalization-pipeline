@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: mart_monthly_finops_summary
+    description: >
+      Monthly FinOps summary mart by team, product line, and accounting
+      recommendation domain.
+    columns:
+      - name: billing_month
+        description: First day of the month represented in the summary.
+        tests:
+          - not_null
+      - name: classification_status
+        description: Accounting recommendation domain included in the aggregate.
+        tests:
+          - not_null
+
+  - name: mart_capitalization_waterfall
+    description: >
+      Finance-facing waterfall from classified billing lines to grouped monthly
+      cost totals by service family and reasoning path.
+    columns:
+      - name: billing_month
+        description: First day of the month represented in the aggregate.
+        tests:
+          - not_null
+      - name: classification_reason
+        description: Rule explanation grouped in the waterfall.
+        tests:
+          - not_null

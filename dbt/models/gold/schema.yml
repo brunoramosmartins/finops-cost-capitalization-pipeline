@@ -1,0 +1,37 @@
+version: 2
+
+models:
+  - name: fct_cost_classification
+    description: >
+      Gold fact table that classifies each billing line into an accounting
+      recommendation domain with explicit rationale and review flags.
+    columns:
+      - name: line_item_id
+        description: Billing line identifier.
+        tests:
+          - not_null
+          - unique
+      - name: classification_status
+        description: Accounting recommendation domain.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['opex', 'capex_eligible', 'shared_cost_review', 'unclassified']
+      - name: classification_reason
+        description: Human-readable rule explanation for the classification.
+        tests:
+          - not_null
+      - name: policy_version
+        description: Accounting policy version used in classification.
+        tests:
+          - not_null
+
+  - name: fct_capex_candidate_costs
+    description: Filtered Gold fact for lines that are CAPEX-eligible under the current policy.
+    columns:
+      - name: line_item_id
+        description: Billing line identifier.
+        tests:
+          - not_null
+          - unique

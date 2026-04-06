@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from random import Random
 
-
 TEAM_CATALOG = [
     {
         "owner_team": "payments-platform",
@@ -40,7 +39,6 @@ TEAM_CATALOG = [
 ENVIRONMENTS = ["prod", "staging", "test", "sandbox"]
 INITIATIVE_STAGES = ["discovery", "build", "implementation", "operate", "support"]
 ASSET_LIFECYCLES = ["prototype", "construction", "production", "maintenance"]
-CAPITALIZATION_VALUES = ["true", "false"]
 
 
 @dataclass(frozen=True)
@@ -81,7 +79,9 @@ def generate_tag_bundle(
         k=1,
     )[0]
 
-    capitalization_candidate = "true" if initiative_stage in {"build", "implementation"} else "false"
+    capitalization_candidate = (
+        "true" if initiative_stage in {"build", "implementation"} else "false"
+    )
     initiative_suffix = rng.randint(100, 999)
     initiative_id = f"{team['initiative_prefix']}-{initiative_suffix}"
 
@@ -99,7 +99,9 @@ def generate_tag_bundle(
     if rng.random() >= imperfect_tag_rate:
         return bundle
 
-    scenario = rng.choice(["missing_initiative", "missing_owner", "invalid_capex", "null_environment"])
+    scenario = rng.choice(
+        ["missing_initiative", "missing_owner", "invalid_capex", "null_environment"]
+    )
 
     if scenario == "missing_initiative":
         return TagBundle(

@@ -5,7 +5,7 @@
 From the repository root:
 
 ```bash
-python scripts/generate_billing_data.py --days 365 --output-format parquet
+finops-generate --days 365 --output-format parquet
 ```
 
 Optional flags:
@@ -24,7 +24,11 @@ Optional flags:
 
 ### Missing Parquet support
 
-Install `pyarrow` from `requirements.txt`.
+Install the project dependencies with:
+
+```bash
+pip install -e ".[dev]"
+```
 
 ### Import errors
 

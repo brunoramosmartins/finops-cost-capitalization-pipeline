@@ -1,0 +1,6 @@
+service,service_family,shared_service_default,capex_service_eligible,amortization_months_default
+AmazonEC2,compute,false,true,36
+AmazonS3,storage,false,true,24
+AmazonRDS,database,false,true,36
+AWSDataTransfer,network,true,false,0
+AWSSupport,support,true,false,0

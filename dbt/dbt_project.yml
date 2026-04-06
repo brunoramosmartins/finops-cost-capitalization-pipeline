@@ -1,0 +1,42 @@
+name: finops_capex
+version: "1.0"
+config-version: 2
+
+profile: finops_capex
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+test-paths: ["tests"]
+
+clean-targets:
+  - target
+  - dbt_packages
+
+vars:
+  raw_cloud_cost_glob: "local_lake/raw/cloud_costs/run_date=*/cloud_cost_usage.parquet"
+  raw_manifest_glob: "local_lake/raw/cloud_costs/run_date=*/manifest.json"
+
+models:
+  finops_capex:
+    +persist_docs:
+      relation: true
+      columns: true
+    bronze:
+      +schema: bronze
+      +materialized: table
+    silver:
+      +schema: silver
+      +materialized: table
+    gold:
+      +schema: gold
+      +materialized: table
+    marts:
+      +schema: marts
+      +materialized: table
+
+seeds:
+  finops_capex:
+    +schema: reference
+    +quote_columns: false

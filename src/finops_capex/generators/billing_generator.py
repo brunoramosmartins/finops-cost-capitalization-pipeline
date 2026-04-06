@@ -3,16 +3,21 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from random import Random
 from typing import Any
 
 import pandas as pd
 from faker import Faker
 
-from .patterns import DemandEvent, environment_multiplier, event_multiplier, monthly_multiplier, weekday_multiplier
+from .patterns import (
+    DemandEvent,
+    environment_multiplier,
+    event_multiplier,
+    monthly_multiplier,
+    weekday_multiplier,
+)
 from .tags import generate_tag_bundle
-
 
 SERVICE_PROFILES = [
     {
@@ -99,7 +104,7 @@ class SyntheticBillingGenerator:
         """Generate a pandas DataFrame containing billing line items."""
 
         rows: list[dict[str, Any]] = []
-        generation_timestamp = datetime.now(tz=UTC)
+        generation_timestamp = datetime.now(tz=timezone.utc)
         batch_id = self._build_batch_id(generation_timestamp)
         start_day = self.config.run_date - timedelta(days=self.config.days - 1)
 
@@ -163,16 +168,31 @@ class SyntheticBillingGenerator:
         random_noise = self.rng.uniform(0.94, 1.08)
         event_noise = 1.0 + (self.config.event_spike_rate * self.rng.random())
         gross_cost = service_profile["base_cost"] * base_multiplier * random_noise * event_noise
-        gross_usage_amount = service_profile["base_usage_amount"] * base_multiplier * self.rng.uniform(0.91, 1.09)
+        gross_usage_amount = (
+            service_profile["base_usage_amount"]
+            * base_multiplier
+            * self.rng.uniform(0.91, 1.09)
+        )
 
-        usage_start_time = datetime.combine(usage_day, time(hour=0, minute=0), tzinfo=UTC)
+        usage_start_time = datetime.combine(
+            usage_day,
+            time(hour=0, minute=0),
+            tzinfo=timezone.utc,
+        )
         usage_end_time = usage_start_time + timedelta(days=1)
-        billing_period_start = datetime.combine(usage_day.replace(day=1), time.min, tzinfo=UTC)
+        billing_period_start = datetime.combine(
+            usage_day.replace(day=1),
+            time.min,
+            tzinfo=timezone.utc,
+        )
         invoice_date = (usage_day.replace(day=1) + timedelta(days=32)).replace(day=5)
 
         blended_cost = round(gross_cost * self.rng.uniform(0.97, 1.0), 4)
         unblended_cost = round(gross_cost, 4)
-        line_item_id = f"{batch_id}-{linked_account_id}-{service_profile['service']}-{usage_day.isoformat()}"
+        line_item_id = (
+            f"{batch_id}-{linked_account_id}-"
+            f"{service_profile['service']}-{usage_day.isoformat()}"
+        )
 
         return {
             "line_item_id": line_item_id,
@@ -214,21 +234,38 @@ class SyntheticBillingGenerator:
         if self.rng.random() >= self.config.credit_row_rate:
             return None
 
-        usage_start_time = datetime.combine(usage_day, time(hour=0, minute=0), tzinfo=UTC)
+        usage_start_time = datetime.combine(
+            usage_day,
+            time(hour=0, minute=0),
+            tzinfo=timezone.utc,
+        )
         usage_end_time = usage_start_time + timedelta(days=1)
-        billing_period_start = datetime.combine(usage_day.replace(day=1), time.min, tzinfo=UTC)
+        billing_period_start = datetime.combine(
+            usage_day.replace(day=1),
+            time.min,
+            tzinfo=timezone.utc,
+        )
         invoice_date = (usage_day.replace(day=1) + timedelta(days=32)).replace(day=5)
         tags = generate_tag_bundle(
             rng=self.rng,
             imperfect_tag_rate=self.config.imperfect_tag_rate,
             account_index=account_index,
         )
-        discount_type = self.rng.choice(["promotional_credit", "enterprise_discount", "sustained_use_discount"])
+        discount_type = self.rng.choice(
+            [
+                "promotional_credit",
+                "enterprise_discount",
+                "sustained_use_discount",
+            ]
+        )
         magnitude = round(service_profile["base_cost"] * self.rng.uniform(0.04, 0.18) * -1, 4)
         line_item_type = "Credit" if discount_type == "promotional_credit" else "Discount"
 
         return {
-            "line_item_id": f"{batch_id}-{linked_account_id}-{service_profile['service']}-{usage_day.isoformat()}-{discount_type}",
+            "line_item_id": (
+                f"{batch_id}-{linked_account_id}-"
+                f"{service_profile['service']}-{usage_day.isoformat()}-{discount_type}"
+            ),
             "billing_period_start": billing_period_start,
             "usage_start_time": usage_start_time,
             "usage_end_time": usage_end_time,

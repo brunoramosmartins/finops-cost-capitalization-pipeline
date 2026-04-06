@@ -1,0 +1,23 @@
+version: 2
+
+seeds:
+  - name: accounting_policy_defaults
+    description: Service-level defaults used by Gold classification logic.
+    columns:
+      - name: service
+        description: Cloud service name from the synthetic billing dataset.
+        tests:
+          - unique
+          - not_null
+      - name: service_family
+        description: Higher-level service family used in finance-facing marts.
+        tests:
+          - not_null
+      - name: shared_service_default
+        description: Whether the service is treated as shared by default.
+        tests:
+          - not_null
+      - name: capex_service_eligible
+        description: Whether the service can become CAPEX-eligible when tags support it.
+        tests:
+          - not_null
