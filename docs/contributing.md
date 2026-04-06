@@ -3,8 +3,13 @@
 ## Local Setup
 
 1. Create a Python virtual environment.
-2. Install runtime dependencies with `pip install -r requirements.txt`.
-3. Install development dependencies with `pip install -r requirements-dev.txt`.
+2. Activate the environment.
+3. Install the project in editable mode with development dependencies:
+
+```bash
+pip install -e ".[dev]"
+```
+
 4. Run tests with `pytest`.
 
 ## Repository Standards
@@ -20,7 +25,7 @@
 Use the generator script from the repository root:
 
 ```bash
-python scripts/generate_billing_data.py --days 365
+finops-generate --days 365
 ```
 
 This command creates:
@@ -28,6 +33,19 @@ This command creates:
 - raw Parquet files under `local_lake/raw/cloud_costs/run_date=YYYY-MM-DD/`
 - a batch manifest JSON file
 - a sample CSV file under `data/sample/`
+
+## Phase 2 Workflow
+
+After generating raw data, run dbt locally:
+
+```bash
+export DBT_PROFILES_DIR=dbt
+dbt seed --project-dir dbt
+dbt run --project-dir dbt
+dbt test --project-dir dbt
+```
+
+The default dbt profile writes to `warehouse/finops.duckdb`.
 
 ## GitHub Workflow
 

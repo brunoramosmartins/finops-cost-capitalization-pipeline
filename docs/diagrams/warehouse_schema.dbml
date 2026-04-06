@@ -1,0 +1,175 @@
+Project finops_cost_capitalization_pipeline {
+  database_type: "DuckDB"
+  Note: "Phase 2 analytical warehouse schema for the portfolio project."
+}
+
+Table analytics_reference.accounting_policy_defaults {
+  service varchar [pk]
+  service_family varchar
+  capex_service_eligible boolean
+  shared_service_default boolean
+  amortization_months_default int
+}
+
+Table analytics_bronze.brz_generation_manifest {
+  batch_id varchar [pk]
+  run_date date
+  row_count int
+  start_date date
+  end_date date
+  file_format varchar
+  data_file varchar
+  sample_file varchar
+  ingestion_timestamp timestamp
+}
+
+Table analytics_bronze.brz_cloud_cost_usage {
+  line_item_id varchar [pk]
+  billing_period_start timestamp
+  usage_start_time timestamp
+  usage_end_time timestamp
+  invoice_date date
+  cloud_provider varchar
+  payer_account_id varchar
+  linked_account_id varchar
+  service varchar
+  usage_type varchar
+  operation varchar
+  region varchar
+  resource_id varchar
+  line_item_type varchar
+  usage_amount double
+  currency_code varchar
+  unblended_cost double
+  blended_cost double
+  discount_type varchar
+  cost_center varchar
+  owner_team varchar
+  environment varchar
+  product_line varchar
+  capitalization_candidate varchar
+  initiative_id varchar
+  initiative_stage varchar
+  asset_lifecycle varchar
+  accounting_policy_version varchar
+  generator_batch_id varchar
+  generated_at timestamp
+  source_file_name varchar
+  run_date date
+  ingestion_timestamp timestamp
+}
+
+Table analytics_silver.stg_cloud_cost_usage {
+  line_item_id varchar [pk]
+  cloud_provider varchar
+  service varchar
+  line_item_type varchar
+  currency_code varchar
+  unblended_cost double
+  blended_cost double
+  owner_team varchar
+  environment varchar
+  product_line varchar
+  capitalization_candidate_flag boolean
+  initiative_id varchar
+  initiative_stage varchar
+  asset_lifecycle varchar
+  tag_quality_status varchar
+  shared_service_flag boolean
+  generator_batch_id varchar
+  run_date date
+}
+
+Table analytics_silver.stg_cloud_resource_tags {
+  line_item_id varchar [pk]
+  cost_center varchar
+  owner_team varchar
+  environment varchar
+  product_line varchar
+  capitalization_candidate_raw varchar
+  capitalization_candidate_flag boolean
+  initiative_id varchar
+  initiative_stage varchar
+  asset_lifecycle varchar
+  accounting_policy_version varchar
+  tag_quality_status varchar
+  shared_service_flag varchar
+}
+
+Table analytics_silver.int_cost_enriched {
+  line_item_id varchar [pk]
+  service varchar
+  service_family varchar
+  line_item_type varchar
+  owner_team varchar
+  environment varchar
+  product_line varchar
+  capex_service_eligible boolean
+  shared_service_flag_effective boolean
+  amortization_months_default int
+  accounting_signal varchar
+}
+
+Table analytics_gold.fct_cost_classification {
+  line_item_id varchar [pk]
+  usage_start_time_utc timestamp
+  service varchar
+  service_family varchar
+  owner_team varchar
+  product_line varchar
+  unblended_cost double
+  blended_cost double
+  classification_status varchar
+  classification_reason varchar
+  review_required_flag boolean
+  policy_version varchar
+}
+
+Table analytics_gold.fct_capex_candidate_costs {
+  line_item_id varchar [pk]
+  usage_start_time_utc timestamp
+  linked_account_id varchar
+  service varchar
+  service_family varchar
+  owner_team varchar
+  product_line varchar
+  initiative_id varchar
+  initiative_stage varchar
+  asset_lifecycle varchar
+  policy_version varchar
+  amortization_months_default int
+  unblended_cost double
+  blended_cost double
+  classification_reason varchar
+}
+
+Table analytics_marts.mart_monthly_finops_summary {
+  billing_month date
+  owner_team varchar
+  product_line varchar
+  classification_status varchar
+  line_item_count int
+  total_unblended_cost double
+  total_blended_cost double
+  review_cost_total double
+  capex_eligible_cost_total double
+  opex_cost_total double
+}
+
+Table analytics_marts.mart_capitalization_waterfall {
+  billing_month date
+  service_family varchar
+  classification_status varchar
+  classification_reason varchar
+  line_item_count int
+  total_unblended_cost double
+  total_blended_cost double
+}
+
+Ref: analytics_bronze.brz_generation_manifest.batch_id < analytics_bronze.brz_cloud_cost_usage.generator_batch_id
+Ref: analytics_bronze.brz_cloud_cost_usage.line_item_id - analytics_silver.stg_cloud_cost_usage.line_item_id
+Ref: analytics_silver.stg_cloud_cost_usage.line_item_id - analytics_silver.stg_cloud_resource_tags.line_item_id
+Ref: analytics_silver.stg_cloud_cost_usage.line_item_id - analytics_silver.int_cost_enriched.line_item_id
+Ref: analytics_reference.accounting_policy_defaults.service < analytics_silver.int_cost_enriched.service
+Ref: analytics_silver.int_cost_enriched.line_item_id - analytics_gold.fct_cost_classification.line_item_id
+Ref: analytics_gold.fct_cost_classification.line_item_id - analytics_gold.fct_capex_candidate_costs.line_item_id

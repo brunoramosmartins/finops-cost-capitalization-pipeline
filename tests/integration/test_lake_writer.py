@@ -25,7 +25,14 @@ def test_write_raw_billing_batch_creates_partition_files(tmp_path: Path) -> None
 
     data_file = Path(manifest.data_file)
     sample_file = Path(manifest.sample_file)
-    manifest_file = tmp_path / "local_lake" / "raw" / "cloud_costs" / "run_date=2026-04-06" / "manifest.json"
+    manifest_file = (
+        tmp_path
+        / "local_lake"
+        / "raw"
+        / "cloud_costs"
+        / "run_date=2026-04-06"
+        / "manifest.json"
+    )
 
     assert data_file.exists()
     assert sample_file.exists()
