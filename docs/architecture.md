@@ -25,6 +25,15 @@ Phase 2 introduces the transformation layer:
 - Gold accounting recommendation logic
 - finance-facing marts
 
+## Phase 3 Scope
+
+Phase 3 adds operational rigor on top of the analytical stack:
+
+- stronger dbt quality tests for row counts, reconciliation, and negative-cost rules
+- local pipeline orchestration with Dagster
+- run metadata publication for each execution
+- CI jobs that validate Python, SQL, and dbt behavior together
+
 ## Data Flow
 
 ```mermaid
@@ -38,7 +47,10 @@ flowchart LR
     G --> H[dbt Silver]
     H --> I[dbt Gold]
     I --> J[dbt Marts]
-    J --> K[Finance consumption and ML handoff]
+    J --> K[Run metadata and observability]
+    J --> L[Finance consumption and ML handoff]
+    M[Dagster schedule] --> B
+    M --> G
 ```
 
 ## Warehouse Model
@@ -60,5 +72,5 @@ Core lineage:
 
 ## Next Architectural Step
 
-Phase 3 will add quality hardening, orchestration, and CI/CD depth on top of
-the current local-first analytics stack.
+Phase 4 will publish versioned Gold exports and formalize the ML handoff
+contract on top of the current quality-hardened analytics stack.

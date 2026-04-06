@@ -14,6 +14,9 @@ models:
         description: Accounting recommendation domain included in the aggregate.
         tests:
           - not_null
+          - accepted_values:
+              arguments:
+                values: ['opex', 'capex_eligible', 'shared_cost_review', 'unclassified']
 
   - name: mart_capitalization_waterfall
     description: >
@@ -28,3 +31,10 @@ models:
         description: Rule explanation grouped in the waterfall.
         tests:
           - not_null
+      - name: classification_status
+        description: Classification domain grouped in the waterfall.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['opex', 'capex_eligible', 'shared_cost_review', 'unclassified']

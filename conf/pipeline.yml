@@ -3,6 +3,17 @@ default_profile: default
 storage:
   raw_root: local_lake/raw/cloud_costs
   sample_root: data/sample
+  metadata_root: local_lake/metadata/pipeline_runs
+warehouse:
+  path: warehouse/finops.duckdb
+dbt:
+  project_dir: dbt
+  profiles_dir: dbt
 execution:
+  generator_profile: default
   default_output_format: parquet
   sample_size: 250
+observability:
+  freshness_threshold_hours: 24
+orchestration:
+  schedule_cron: "0 6 * * *"

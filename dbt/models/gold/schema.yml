@@ -22,6 +22,20 @@ models:
         description: Human-readable rule explanation for the classification.
         tests:
           - not_null
+      - name: unblended_cost
+        description: Classified unblended cost at the billing line grain.
+        tests:
+          - non_negative_unless_type:
+              arguments:
+                type_column: line_item_type
+                exempt_types: ['Credit', 'Discount']
+      - name: blended_cost
+        description: Classified blended cost at the billing line grain.
+        tests:
+          - non_negative_unless_type:
+              arguments:
+                type_column: line_item_type
+                exempt_types: ['Credit', 'Discount']
       - name: policy_version
         description: Accounting policy version used in classification.
         tests:
@@ -35,3 +49,15 @@ models:
         tests:
           - not_null
           - unique
+          - relationships:
+              arguments:
+                to: ref('fct_cost_classification')
+                field: line_item_id
+      - name: unblended_cost
+        description: CAPEX-eligible unblended cost.
+        tests:
+          - non_negative_values
+      - name: blended_cost
+        description: CAPEX-eligible blended cost.
+        tests:
+          - non_negative_values

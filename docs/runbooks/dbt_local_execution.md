@@ -10,7 +10,7 @@
 From the repository root:
 
 ```bash
-export DBT_PROFILES_DIR=dbt
+export DBT_PROFILES_DIR="$(pwd)/dbt"
 dbt seed --project-dir dbt
 dbt run --project-dir dbt --select bronze
 dbt run --project-dir dbt --select silver

@@ -14,6 +14,7 @@ CAPEX recommendation layer on top of a Bronze, Silver, Gold architecture.
 
 - Phase 1 implemented: repository foundation, synthetic billing generation, local data lake
 - Phase 2 implemented: DuckDB warehouse, dbt Bronze/Silver/Gold models, finance-facing marts
+- Phase 3 implemented: stronger dbt quality tests, Dagster orchestration, local pipeline metadata, and CI/CD hardening
 - Local validation completed: generator, `pytest`, `dbt seed`, `dbt run`, and `dbt test`
 - Current output: each raw billing line is classified into `opex`, `capex_eligible`, `shared_cost_review`, or `unclassified`
 
@@ -29,8 +30,9 @@ This project is designed to demonstrate:
 
 ## Current Status
 
-Phases 1 and 2 are implemented as the repository foundation, synthetic data
-generation layer, and local dbt transformation stack. The project currently provides:
+Phases 1, 2, and 3 are implemented as the repository foundation, synthetic data
+generation layer, local dbt transformation stack, and quality-orchestrated execution layer.
+The project currently provides:
 
 - a documented repository structure and contribution workflow
 - assistant guidance under `docs/assistant/`
@@ -39,6 +41,9 @@ generation layer, and local dbt transformation stack. The project currently prov
 - partitioned raw output in a mock local data lake
 - a raw data contract for downstream Bronze ingestion
 - a local DuckDB + dbt project for Bronze, Silver, Gold, and mart models
+- a Dagster job definition for scheduled local execution
+- pipeline run summaries under `local_lake/metadata/pipeline_runs/`
+- GitHub Actions that validate Python quality, SQL linting, and dbt execution
 
 ## Architecture
 
@@ -51,7 +56,10 @@ flowchart LR
     E --> F[dbt Silver<br/>stg_cloud_cost_usage<br/>stg_cloud_resource_tags<br/>int_cost_enriched]
     F --> G[dbt Gold<br/>fct_cost_classification<br/>fct_capex_candidate_costs]
     G --> H[dbt Marts<br/>mart_monthly_finops_summary<br/>mart_capitalization_waterfall]
-    H --> I[Finance analytics and ML handoff]
+    H --> I[Pipeline metadata<br/>run_summary.json]
+    H --> J[Finance analytics and ML handoff]
+    K[Dagster job<br/>daily_finops_pipeline] --> A
+    K --> E
 ```
 
 The warehouse model can also be opened in `dbdiagram.io` using
@@ -150,7 +158,13 @@ dbt run --project-dir dbt
 dbt test --project-dir dbt
 ```
 
-6. Validate a few warehouse outputs:
+6. Or run the full local pipeline in one command:
+
+```bash
+finops-run-pipeline --days 90
+```
+
+7. Validate a few warehouse outputs:
 
 ```bash
 python -c "import duckdb; con=duckdb.connect('warehouse/finops.duckdb'); print(con.execute('show all tables').fetchdf())"
@@ -168,11 +182,13 @@ layer.
 - local DuckDB warehouse at `warehouse/finops.duckdb`
 - dbt schemas: `analytics_reference`, `analytics_bronze`, `analytics_silver`, `analytics_gold`, and `analytics_marts`
 - classification outputs that separate direct operational spend from CAPEX candidates and review-required shared costs
+- run metadata under `local_lake/metadata/pipeline_runs/run_date=.../run_summary.json`
 
 ## Repository Highlights
 
 - `src/finops_capex/`: Python package for generation, ingestion, and utilities
 - `dbt/`: local transformation project for Bronze, Silver, Gold, and marts
+- `orchestration/dagster_project/`: Dagster job and schedule definitions
 - `data/contracts/`: formal data contracts
 - `docs/`: architecture, policy, execution, and contribution guidance
 - `docs/diagrams/`: reusable architecture and warehouse diagrams
@@ -187,6 +203,8 @@ layer.
 - [docs/assistant/project_context.md](docs/assistant/project_context.md): assistant-facing project context
 - [data/contracts/raw_cloud_cost_usage.yml](data/contracts/raw_cloud_cost_usage.yml): raw data contract
 - [docs/runbooks/dbt_local_execution.md](docs/runbooks/dbt_local_execution.md): dbt execution guide
+- [docs/runbooks/ci_cd.md](docs/runbooks/ci_cd.md): CI and validation runbook
+- [docs/runbooks/incident_response.md](docs/runbooks/incident_response.md): failure investigation guide
 
 ## Portfolio Framing
 

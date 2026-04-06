@@ -10,6 +10,21 @@ models:
         description: Synthetic raw billing line identifier.
         tests:
           - not_null
+          - unique
+      - name: unblended_cost
+        description: Raw provider-like unblended cost before downstream normalization.
+        tests:
+          - non_negative_unless_type:
+              arguments:
+                type_column: line_item_type
+                exempt_types: ['Credit', 'Discount']
+      - name: blended_cost
+        description: Raw provider-like blended cost before downstream normalization.
+        tests:
+          - non_negative_unless_type:
+              arguments:
+                type_column: line_item_type
+                exempt_types: ['Credit', 'Discount']
       - name: source_file_name
         description: File path reported by DuckDB during Parquet ingestion.
         tests:
