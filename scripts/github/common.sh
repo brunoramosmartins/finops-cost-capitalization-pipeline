@@ -119,17 +119,17 @@ parse_roadmap_issues() {
       next
     }
 
-    line ~ /^\*\*Labels:\*\*: / {
+    line ~ /^\*\*Labels:\*\* / {
       labels = line
-      sub(/^\*\*Labels:\*\*: /, "", labels)
+      sub(/^\*\*Labels:\*\* /, "", labels)
       gsub(/`/, "", labels)
       gsub(/, /, ",", labels)
       next
     }
 
-    line ~ /^\*\*Milestone:\*\*: / {
+    line ~ /^\*\*Milestone:\*\* / {
       milestone = line
-      sub(/^\*\*Milestone:\*\*: /, "", milestone)
+      sub(/^\*\*Milestone:\*\* /, "", milestone)
       gsub(/`/, "", milestone)
       next
     }
