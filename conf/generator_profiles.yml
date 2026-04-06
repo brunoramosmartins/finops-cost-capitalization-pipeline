@@ -1,0 +1,20 @@
+default:
+  company_name: Acme FinOps Labs
+  seed: 42
+  days: 365
+  payer_account_id: "111111111111"
+  linked_accounts:
+    - "222222222221"
+    - "222222222222"
+    - "222222222223"
+    - "222222222224"
+  regions:
+    - us-east-1
+    - us-west-2
+    - eu-west-1
+  output_format: parquet
+  sample_size: 250
+  imperfect_tag_rate: 0.08
+  credit_row_rate: 0.02
+  event_spike_rate: 0.03
+  accounting_policy_version: "2026.1"

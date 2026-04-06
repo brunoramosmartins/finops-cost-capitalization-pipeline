@@ -201,14 +201,14 @@ finops-cost-capitalization-pipeline/
 |       |-- ci.yml
 |       `-- release.yml
 |
-|-- .claude/                         # Optional local assistant workflow
-|   |-- system_prompt.md
-|   |-- project_context.md
-|   |-- code_style.md
-|   `-- task_templates/
-|       |-- dbt_model.md
-|       |-- python_data_task.md
-|       `-- review_checklist.md
+|-- .agents/
+|   `-- skills/
+|       |-- synthetic-billing-generation/
+|       |   `-- SKILL.md
+|       |-- dbt-model-authoring/
+|       |   `-- SKILL.md
+|       `-- finops-accounting-review/
+|           `-- SKILL.md
 |
 |-- conf/
 |   |-- accounting_policy.yml
@@ -290,6 +290,14 @@ finops-cost-capitalization-pipeline/
 |
 |-- docs/
 |   |-- architecture.md
+|   |-- assistant/
+|   |   |-- system_prompt.md
+|   |   |-- project_context.md
+|   |   |-- code_style.md
+|   |   `-- task_templates/
+|   |       |-- dbt_model.md
+|   |       |-- python_data_task.md
+|   |       `-- review_checklist.md
 |   |-- accounting_policy.md
 |   |-- ml_handoff.md
 |   |-- contributing.md
@@ -514,11 +522,12 @@ tags and operational variability.
   - [ ] Document project goals and execution commands
 
 - [ ] **P1-02: Configure local agent workflow**
-  - [ ] Create `.claude/system_prompt.md`
-  - [ ] Create `.claude/project_context.md`
-  - [ ] Create `.claude/code_style.md`
+  - [ ] Create `docs/assistant/system_prompt.md`
+  - [ ] Create `docs/assistant/project_context.md`
+  - [ ] Create `docs/assistant/code_style.md`
   - [ ] Add reusable prompt templates for dbt, Python, and reviews
-  - [ ] Document how these prompts are used to standardize code generation
+  - [ ] Add project-specific Codex skills under `.agents/skills/`
+  - [ ] Document how this guidance standardizes code generation
 
 - [ ] **P1-03: Implement synthetic billing generator**
   - [ ] Create Python generator modules in `src/finops_capex/generators/`
@@ -549,7 +558,8 @@ tags and operational variability.
 ### Deliverables
 
 - [x] Repository skeleton exists and is documented
-- [x] Local assistant workflow exists under `.claude/`
+- [x] Assistant guidance exists under `docs/assistant/`
+- [x] Codex project skills exist under `.agents/skills/`
 - [x] Synthetic billing generator creates realistic billing drops
 - [x] Raw data includes infrastructure and accounting tags
 - [x] Mock data lake receives partitioned files plus run manifest
@@ -1001,15 +1011,17 @@ code style, and review expectations stay consistent across repetitive tasks.
 
 ## Tasks
 
-- [ ] Create `.claude/system_prompt.md`
-- [ ] Create `.claude/project_context.md`
-- [ ] Create `.claude/code_style.md`
+- [ ] Create `docs/assistant/system_prompt.md`
+- [ ] Create `docs/assistant/project_context.md`
+- [ ] Create `docs/assistant/code_style.md`
 - [ ] Add prompt templates for Python data tasks, dbt model creation, and reviews
+- [ ] Add project-specific Codex skills under `.agents/skills/`
 - [ ] Document how team members should use and update these files
 
 ## Definition of Done
 
-- [ ] `.claude/` contains reusable project guidance
+- [ ] `docs/assistant/` contains reusable project guidance
+- [ ] `.agents/skills/` contains reusable Codex skills
 - [ ] Prompt files reflect repository-specific standards
 - [ ] The workflow is documented in `docs/contributing.md`
 

@@ -1,0 +1,113 @@
+dataset: raw_cloud_cost_usage
+version: 1
+description: >
+  Synthetic cloud billing dataset that mimics a provider-style cost and usage
+  export. The dataset is designed for Bronze ingestion and downstream Silver and
+  Gold transformations.
+grain: one billing line item per resource, service, and usage window
+date_coverage:
+  minimum_months: 12
+  default_days: 365
+fields:
+  - name: billing_period_start
+    type: timestamp
+    required: true
+    description: First day of the billing month in UTC.
+  - name: usage_start_time
+    type: timestamp
+    required: true
+    description: Usage window start timestamp in UTC.
+  - name: usage_end_time
+    type: timestamp
+    required: true
+    description: Usage window end timestamp in UTC.
+  - name: invoice_date
+    type: date
+    required: true
+    description: Invoice posting date.
+  - name: cloud_provider
+    type: string
+    required: true
+    allowed_values: [aws]
+  - name: payer_account_id
+    type: string
+    required: true
+  - name: linked_account_id
+    type: string
+    required: true
+  - name: service
+    type: string
+    required: true
+    allowed_values: [AmazonEC2, AmazonS3, AmazonRDS, AWSDataTransfer, AWSSupport]
+  - name: usage_type
+    type: string
+    required: true
+  - name: operation
+    type: string
+    required: true
+  - name: region
+    type: string
+    required: true
+  - name: resource_id
+    type: string
+    required: true
+  - name: line_item_type
+    type: string
+    required: true
+    allowed_values: [Usage, Discount, Credit]
+  - name: unblended_cost
+    type: float
+    required: true
+  - name: blended_cost
+    type: float
+    required: true
+  - name: currency_code
+    type: string
+    required: true
+    allowed_values: [USD]
+  - name: discount_type
+    type: string
+    required: false
+    allowed_values: [none, sustained_use_discount, promotional_credit, enterprise_discount]
+  - name: cost_center
+    type: string
+    required: false
+  - name: owner_team
+    type: string
+    required: false
+  - name: environment
+    type: string
+    required: false
+  - name: product_line
+    type: string
+    required: false
+  - name: capitalization_candidate
+    type: string
+    required: false
+  - name: initiative_id
+    type: string
+    required: false
+  - name: initiative_stage
+    type: string
+    required: false
+  - name: asset_lifecycle
+    type: string
+    required: false
+  - name: accounting_policy_version
+    type: string
+    required: true
+  - name: generator_batch_id
+    type: string
+    required: true
+  - name: generated_at
+    type: timestamp
+    required: true
+assumptions:
+  - seasonal demand is represented through monthly multipliers
+  - weekday and weekend usage behave differently
+  - discount and credit rows may appear with negative costs
+  - a controlled percentage of rows contains incomplete or invalid tags
+quality_expectations:
+  - all required fields must be present
+  - timestamps must be UTC-compatible
+  - account and resource identifiers must be stable within a generated batch
