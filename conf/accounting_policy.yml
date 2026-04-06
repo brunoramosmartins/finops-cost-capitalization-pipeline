@@ -1,0 +1,9 @@
+policy_version: "2026.1"
+classification_domain:
+  - opex
+  - capex_eligible
+  - shared_cost_review
+  - unclassified
+notes:
+  - Phase 1 only prepares inputs for accounting classification.
+  - Final accounting recommendation logic is implemented in later phases.

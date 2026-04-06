@@ -1,0 +1,8 @@
+project_name: finops-cost-capitalization-pipeline
+default_profile: default
+storage:
+  raw_root: local_lake/raw/cloud_costs
+  sample_root: data/sample
+execution:
+  default_output_format: parquet
+  sample_size: 250
