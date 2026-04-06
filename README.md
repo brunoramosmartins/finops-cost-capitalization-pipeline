@@ -6,240 +6,320 @@
 [![DuckDB](https://img.shields.io/badge/warehouse-duckdb-yellow.svg)](https://duckdb.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 
-Portfolio-grade Analytics Engineering project that simulates cloud billing data,
-builds a local-first FinOps pipeline, and implements an explainable OPEX versus
-CAPEX recommendation layer on top of a Bronze, Silver, Gold architecture.
+Portfolio-grade Analytics Engineering and FinOps project that simulates cloud billing, builds a local-first Bronze/Silver/Gold pipeline, and produces an explainable OPEX vs CAPEX recommendation layer ready for downstream forecasting.
 
-## Project Snapshot
+## Executive Summary
 
-- Phase 1 implemented: repository foundation, synthetic billing generation, local data lake
-- Phase 2 implemented: DuckDB warehouse, dbt Bronze/Silver/Gold models, finance-facing marts
-- Phase 3 implemented: stronger dbt quality tests, Dagster orchestration, local pipeline metadata, and CI/CD hardening
-- Phase 4 implemented: versioned Gold exports and formal ML handoff contract
-- Local validation completed: generator, `pytest`, `dbt seed`, `dbt run`, `dbt test`, and Gold export
-- Current output: each raw billing line is classified into `opex`, `capex_eligible`, `shared_cost_review`, or `unclassified`
+This repository answers a practical FinOps question:
 
-## Why This Repository Exists
+> How do you turn noisy cloud billing data into a governed analytical product that finance, engineering, and a downstream ML system can trust?
 
-This project is designed to demonstrate:
+The solution implemented here is a local-first analytics pipeline that:
 
-- Analytics Engineering with `dbt` and DuckDB
-- synthetic data generation with realistic operational and financial behavior
-- FinOps reasoning expressed as reproducible SQL logic
-- portfolio-grade documentation, repository hygiene, and CI discipline
-- a clean downstream bridge into a future ML forecasting repository
+- generates provider-like cloud billing data with realistic cost, usage, tag, and discount behavior,
+- lands raw files in a partitioned local lake,
+- transforms them with `dbt` and DuckDB through Bronze, Silver, Gold, and mart layers,
+- applies explainable accounting rules to classify each billing line,
+- exports versioned Gold snapshots for a second ML repository.
 
-## Current Status
+The main business output is not the raw data. The main output is a governed Gold data product that labels each billing line as:
 
-Phases 1, 2, 3, and 4 are implemented as the repository foundation, synthetic
-data generation layer, local dbt transformation stack, quality-orchestrated
-execution layer, and versioned export handoff for downstream ML work.
-The project currently provides:
+- `opex`
+- `capex_eligible`
+- `shared_cost_review`
+- `unclassified`
 
-- a documented repository structure and contribution workflow
-- assistant guidance under `docs/assistant/`
-- project-specific Codex skills under `.agents/skills/`
-- a synthetic cloud billing generator implemented in Python
-- partitioned raw output in a mock local data lake
-- a raw data contract for downstream Bronze ingestion
-- a local DuckDB + dbt project for Bronze, Silver, Gold, and mart models
-- a Dagster job definition for scheduled local execution
-- pipeline run summaries under `local_lake/metadata/pipeline_runs/`
-- GitHub Actions that validate Python quality, SQL linting, and dbt execution
-- versioned Gold exports under `local_lake/gold/ml_handoff/`
-- a downstream ML handoff contract and repository boundary documentation
+## Why This Project Matters
 
-## Architecture
+Cloud billing records are operationally detailed but financially ambiguous. A finance team may need to know:
+
+- which costs should remain operational expense,
+- which technology build costs may be capitalized,
+- which shared or weakly tagged costs require manual review,
+- which curated outputs are safe to use for forecasting and reporting.
+
+This repository demonstrates how to build that analytical layer with:
+
+- `dbt` and DuckDB for Analytics Engineering,
+- explicit accounting recommendation logic,
+- versioned exports and data contracts,
+- Dagster orchestration,
+- CI validation across Python, SQL, and dbt,
+- a clean handoff boundary to a second ML repository.
+
+## What This Repository Produces
+
+The implemented pipeline produces:
+
+- raw billing drops in a local lake,
+- Bronze ingestion models,
+- Silver standardization and tag-quality signals,
+- Gold classification facts,
+- finance-facing marts,
+- versioned export snapshots and manifests,
+- pipeline metadata for observability and auditability.
+
+At a high level:
 
 ```mermaid
 flowchart LR
-    A[Python Generator<br/>Pandas + Faker] --> B[local_lake/raw/cloud_costs]
-    A --> C[data/sample/cloud_cost_usage_sample.csv]
-    A --> D[manifest.json]
-    B --> E[dbt Bronze<br/>brz_cloud_cost_usage<br/>brz_generation_manifest]
-    E --> F[dbt Silver<br/>stg_cloud_cost_usage<br/>stg_cloud_resource_tags<br/>int_cost_enriched]
-    F --> G[dbt Gold<br/>fct_cost_classification<br/>fct_capex_candidate_costs]
-    G --> H[dbt Marts<br/>mart_monthly_finops_summary<br/>mart_capitalization_waterfall]
-    H --> I[Pipeline metadata<br/>run_summary.json]
-    H --> J[Versioned Gold export<br/>export_manifest.json]
-    J --> K[Finance analytics and ML handoff]
-    L[Dagster job<br/>daily_finops_pipeline] --> A
-    L --> E
+    A[Python synthetic billing generator] --> B[local_lake raw partitions]
+    B --> C[dbt Bronze]
+    C --> D[dbt Silver]
+    D --> E[dbt Gold]
+    E --> F[Finance marts]
+    F --> G[Versioned Gold export]
+    G --> H[Project 2 ML repository]
+    I[Dagster job] --> A
+    I --> C
 ```
 
-The warehouse model can also be opened in `dbdiagram.io` using
-[`docs/diagrams/warehouse_schema.dbml`](docs/diagrams/warehouse_schema.dbml).
+## Example Outputs
 
-## Data Model Overview
+The repository already contains evidence of a successful local pipeline run in:
 
-```mermaid
-erDiagram
-    BRZ_GENERATION_MANIFEST ||--o{ BRZ_CLOUD_COST_USAGE : "batch_id -> generator_batch_id"
-    BRZ_CLOUD_COST_USAGE ||--|| STG_CLOUD_COST_USAGE : "line_item_id"
-    STG_CLOUD_COST_USAGE ||--|| STG_CLOUD_RESOURCE_TAGS : "line_item_id"
-    STG_CLOUD_COST_USAGE ||--|| INT_COST_ENRICHED : "line_item_id"
-    INT_COST_ENRICHED ||--|| FCT_COST_CLASSIFICATION : "line_item_id"
-    FCT_COST_CLASSIFICATION ||--o{ FCT_CAPEX_CANDIDATE_COSTS : "filtered by status"
-    FCT_COST_CLASSIFICATION ||--o{ MART_MONTHLY_FINOPS_SUMMARY : "monthly aggregate"
-    FCT_COST_CLASSIFICATION ||--o{ MART_CAPITALIZATION_WATERFALL : "waterfall aggregate"
+- `local_lake/metadata/pipeline_runs/run_date=2026-04-06/run_summary.json`
+- `data/sample/cloud_cost_usage_sample.csv`
+- `data/sample/cloud_cost_usage_sample_manifest.json`
 
-    BRZ_CLOUD_COST_USAGE {
-        string line_item_id PK
-        string generator_batch_id
-        string service
-        double unblended_cost
-        string source_file_name
-        date run_date
-    }
-    STG_CLOUD_COST_USAGE {
-        string line_item_id PK
-        string cloud_provider
-        string line_item_type
-        string tag_quality_status
-        boolean shared_service_flag
-    }
-    INT_COST_ENRICHED {
-        string line_item_id PK
-        string service_family
-        boolean capex_service_eligible
-        string accounting_signal
-    }
-    FCT_COST_CLASSIFICATION {
-        string line_item_id PK
-        string classification_status
-        string classification_reason
-        boolean review_required_flag
-        string policy_version
-    }
-    MART_MONTHLY_FINOPS_SUMMARY {
-        date billing_month
-        string owner_team
-        string product_line
-        string classification_status
-    }
-    MART_CAPITALIZATION_WATERFALL {
-        date billing_month
-        string service_family
-        string classification_reason
-        double total_unblended_cost
-    }
+### Example run summary
+
+From the latest committed local run metadata:
+
+```json
+{
+  "status": "success",
+  "run_date": "2026-04-06",
+  "row_count": 1840,
+  "latest_billing_month": "2026-04-01",
+  "bronze_row_count": 1840,
+  "gold_row_count": 1840
+}
 ```
 
-Current analytical outputs include:
+This is a strong integrity signal for the portfolio because Bronze and Gold reconciled to the same row count in that run.
 
-- raw provider-like billing drops in Parquet
-- Bronze ingestion models in dbt
-- Silver standardization and metadata quality signals
-- Gold accounting recommendation facts
-- monthly finance-facing marts
-- versioned Parquet exports for downstream forecasting
+### Example classification distribution
 
-## Quick Start
+The same `run_summary.json` reports the following Gold classification counts:
 
-1. Create a Python virtual environment.
-2. Install dependencies:
+| classification_status | row_count |
+|---|---:|
+| `shared_cost_review` | 936 |
+| `opex` | 571 |
+| `capex_eligible` | 232 |
+| `unclassified` | 101 |
 
-```bash
-pip install -e ".[dev]"
+This is useful because it shows the project is not producing a trivial all-one-class output. The recommendation layer is creating a meaningful review surface for finance and FinOps workflows.
+
+### Example raw billing line
+
+One sample row from `data/sample/cloud_cost_usage_sample.csv` looks like this:
+
+| field | value |
+|---|---|
+| `service` | `AWSDataTransfer` |
+| `linked_account_id` | `222222222221` |
+| `unblended_cost` | `10.8657` |
+| `owner_team` | null |
+| `environment` | `test` |
+| `product_line` | `payments` |
+| `capitalization_candidate` | `true` |
+| `initiative_stage` | `implementation` |
+| `asset_lifecycle` | `construction` |
+
+That example illustrates the type of ambiguity this repository is built to handle: infrastructure cost data can contain partial ownership signals, operational context, and capitalization hints that need to be standardized and classified before they are analytically useful.
+
+### Example batch manifest
+
+The sample manifest records the generated batch boundary:
+
+```json
+{
+  "batch_id": "batch-20260406T192644Z",
+  "run_date": "2026-04-06",
+  "row_count": 1840,
+  "start_date": "2026-01-07",
+  "end_date": "2026-04-06",
+  "file_format": "parquet"
+}
 ```
 
-3. Generate a raw synthetic billing batch:
+This gives the pipeline an auditable source boundary before dbt ingestion.
 
-```bash
-finops-generate --days 365 --output-format parquet
-```
+### Example Gold export manifest
 
-4. Run tests:
-
-```bash
-pytest
-```
-
-5. Run the dbt transformation stack:
-
-```bash
-export DBT_PROFILES_DIR="$(pwd)/dbt"
-dbt seed --project-dir dbt
-dbt run --project-dir dbt
-dbt test --project-dir dbt
-```
-
-6. Or run the full local pipeline in one command:
-
-```bash
-finops-run-pipeline --days 90
-```
-
-7. Export the Gold product independently when needed:
+After running:
 
 ```bash
 finops-export-gold --snapshot-date 2026-04-06
 ```
 
-8. Validate a few warehouse outputs:
+the repository produced a versioned export manifest at:
 
-```bash
-python -c "import duckdb; con=duckdb.connect('warehouse/finops.duckdb'); print(con.execute('show all tables').fetchdf())"
-python -c "import duckdb; con=duckdb.connect('warehouse/finops.duckdb'); print(con.execute('select classification_status, count(*) from analytics_gold.fct_cost_classification group by 1 order by 1').fetchdf())"
-python -c "import duckdb; con=duckdb.connect('warehouse/finops.duckdb'); print(con.execute('select * from analytics_marts.mart_monthly_finops_summary order by billing_month, classification_status limit 20').fetchdf())"
+- `local_lake/gold/ml_handoff/version=v0.4.0/snapshot_date=2026-04-06/export_manifest.json`
+
+Snippet:
+
+```json
+{
+  "export_version": "v0.4.0",
+  "snapshot_date": "2026-04-06",
+  "freshness_within_threshold": true,
+  "latest_billing_month": "2026-04-01",
+  "artifacts": [
+    {
+      "relation_name": "analytics_gold.fct_cost_classification",
+      "row_count": 1840
+    },
+    {
+      "relation_name": "analytics_gold.fct_capex_candidate_costs",
+      "row_count": 232
+    },
+    {
+      "relation_name": "analytics_marts.mart_monthly_finops_summary",
+      "row_count": 72
+    },
+    {
+      "relation_name": "analytics_marts.mart_capitalization_waterfall",
+      "row_count": 112
+    }
+  ]
+}
 ```
 
-For the latest validated local run, both Bronze and Gold materialized the same
-line count, confirming that every raw billing line reached the classification
-layer.
+This is one of the strongest portfolio signals in the repository because it shows the project delivers a real versioned analytical interface for downstream ML consumption, not only internal warehouse models.
 
-## What You Should Have After Phase 4
+## Data Provenance
 
-- raw Parquet and manifest files under `local_lake/raw/cloud_costs/run_date=.../`
-- local DuckDB warehouse at `warehouse/finops.duckdb`
-- dbt schemas: `analytics_reference`, `analytics_bronze`, `analytics_silver`, `analytics_gold`, and `analytics_marts`
-- classification outputs that separate direct operational spend from CAPEX candidates and review-required shared costs
-- run metadata under `local_lake/metadata/pipeline_runs/run_date=.../run_summary.json`
-- versioned Gold exports under `local_lake/gold/ml_handoff/version=vX.Y.Z/snapshot_date=.../`
+This repository uses synthetic billing data only.
 
-## Repository Highlights
+That distinction is important:
 
-- `src/finops_capex/`: Python package for generation, ingestion, and utilities
-- `dbt/`: local transformation project for Bronze, Silver, Gold, and marts
-- `orchestration/dagster_project/`: Dagster job and schedule definitions
-- `data/contracts/`: formal data contracts
-- `docs/`: architecture, policy, execution, and contribution guidance
-- `docs/diagrams/`: reusable architecture and warehouse diagrams
-- `.agents/skills/`: Codex-oriented reusable project skills
+- cloud billing rows are synthetic,
+- account identifiers are synthetic,
+- resource identifiers are synthetic,
+- tags and ownership signals are synthetic,
+- usage spikes, discounts, and credits are synthetic,
+- transformation logic, accounting rules, contracts, tests, marts, and exports are real project artifacts.
 
-## Repository Guide
+So this is not a mixed real-plus-fake billing repository. It is a synthetic-source project with a real Analytics Engineering and FinOps workflow built on top of it.
+
+That is intentional and portfolio-appropriate:
+
+- no confidential billing data is required,
+- the data model remains realistic,
+- the engineering stack remains production-shaped,
+- the repository can still support a serious downstream ML project.
+
+## Portfolio Value
+
+This project is stronger than a typical dashboard or notebook portfolio entry because it combines several layers of technical work in one coherent system:
+
+- Analytics Engineering: Bronze, Silver, Gold, and mart modeling with `dbt`
+- FinOps domain modeling: explainable OPEX vs CAPEX recommendation logic
+- Data Product design: contracts, manifests, versioned exports, ownership boundaries
+- Platform rigor: Dagster orchestration, pytest, SQL linting, CI workflows
+- ML readiness: formal export contract for a second forecasting repository
+
+The strongest way to present this repo in interviews is:
+
+> I built the governed FinOps data product layer first, so that forecasting and MLOps could be developed on top of stable, versioned financial datasets instead of directly on noisy billing files.
+
+## Current Scope
+
+Implemented in this repository:
+
+- synthetic billing generator in Python
+- partitioned local-lake landing zone
+- DuckDB warehouse
+- dbt Bronze, Silver, Gold, and mart models
+- accounting recommendation logic
+- pipeline metadata publication
+- versioned Gold export for ML handoff
+- Dagster orchestration for local scheduled execution
+- CI validation across Python and dbt surfaces
+
+Explicitly out of scope for this repository:
+
+- model training
+- experiment tracking
+- model serving
+- production cloud deployment
+
+Those are intentionally reserved for the downstream ML repository described in [docs/ml_handoff.md](docs/ml_handoff.md).
+
+## Repository Walkthrough
+
+Core implementation:
+
+- `src/finops_capex/`: generator, ingestion, pipeline runtime, exports, and CLI entrypoints
+- `dbt/`: Bronze, Silver, Gold, mart models, seeds, tests, and profiles
+- `orchestration/dagster_project/`: Dagster jobs, schedules, and ops
+- `conf/`: generator, pipeline, and policy configuration
+- `data/contracts/`: raw and Gold export contracts
+
+Project documentation:
 
 - [ROADMAP.md](ROADMAP.md): full phased project plan
-- [docs/architecture.md](docs/architecture.md): architectural notes
-- [docs/diagrams/warehouse_schema.dbml](docs/diagrams/warehouse_schema.dbml): dbdiagram-compatible warehouse model
-- [docs/contributing.md](docs/contributing.md): local development workflow
-- [docs/assistant/project_context.md](docs/assistant/project_context.md): assistant-facing project context
-- [data/contracts/raw_cloud_cost_usage.yml](data/contracts/raw_cloud_cost_usage.yml): raw data contract
-- [data/contracts/gold_ml_handoff.yml](data/contracts/gold_ml_handoff.yml): downstream ML export contract
-- [docs/ml_handoff.md](docs/ml_handoff.md): Project 2 bootstrap and ownership boundary
-- [docs/runbooks/dbt_local_execution.md](docs/runbooks/dbt_local_execution.md): dbt execution guide
-- [docs/runbooks/ci_cd.md](docs/runbooks/ci_cd.md): CI and validation runbook
+- [docs/architecture.md](docs/architecture.md): architecture notes
+- [docs/accounting_policy.md](docs/accounting_policy.md): accounting and recommendation framing
+- [docs/ml_handoff.md](docs/ml_handoff.md): Project 2 contract boundary
+- [docs/runbooks/local_execution.md](docs/runbooks/local_execution.md): local execution guide
+- [docs/runbooks/ci_cd.md](docs/runbooks/ci_cd.md): CI validation runbook
 - [docs/runbooks/incident_response.md](docs/runbooks/incident_response.md): failure investigation guide
+- [data/contracts/raw_cloud_cost_usage.yml](data/contracts/raw_cloud_cost_usage.yml): raw input contract
+- [data/contracts/gold_ml_handoff.yml](data/contracts/gold_ml_handoff.yml): downstream Gold export contract
 
-## Portfolio Framing
+## Quick Start
 
-This repository intentionally emphasizes:
+Install dependencies:
 
-- explicit roadmap-driven execution
-- documentation that stays close to implementation
-- explainable financial rules instead of opaque heuristics
-- local reproducibility before cloud complexity
-- clean boundaries between Analytics Engineering and future MLOps work
+```bash
+pip install -e ".[dev]"
+```
 
-## Roadmap
+Generate a synthetic billing batch:
 
-See [ROADMAP.md](ROADMAP.md) for the full project plan, including phases,
-milestones, issue catalog, architecture, and the ML handoff strategy.
+```bash
+finops-generate --days 365 --output-format parquet
+```
+
+Run tests:
+
+```bash
+pytest
+```
+
+Run the full local pipeline:
+
+```bash
+finops-run-pipeline --days 90
+```
+
+Export the current Gold product:
+
+```bash
+finops-export-gold --snapshot-date 2026-04-06
+```
+
+For detailed execution steps, see [docs/runbooks/local_execution.md](docs/runbooks/local_execution.md).
+
+## What "Done" Looks Like
+
+From a portfolio perspective, this repository is successful when it shows:
+
+- a reproducible synthetic source layer,
+- a clean Bronze/Silver/Gold warehouse design,
+- explainable financial classification logic,
+- evidence of testing and CI discipline,
+- a versioned export boundary for downstream ML work.
+
+That is the standard this repository is aiming at, and the roadmap in [ROADMAP.md](ROADMAP.md) is aligned to that objective.
 
 ## GitHub Bootstrap
 
-Use the Bash automation scripts to prepare the remote GitHub repository with
-labels, milestones, and issues derived from the roadmap.
+This repository includes automation scripts to create labels, milestones, and issues directly from the roadmap:
 
 ```bash
 bash scripts/setup_labels.sh --repo owner/repo
@@ -248,5 +328,6 @@ bash scripts/setup_issues.sh --repo owner/repo
 bash scripts/setup_all.sh --repo owner/repo
 ```
 
-The issue bootstrap reads the issue catalog directly from `ROADMAP.md`, so the
-roadmap remains the single source of truth for backlog creation.
+## License
+
+MIT
