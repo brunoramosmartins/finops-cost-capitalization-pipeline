@@ -20,9 +20,10 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
 @op(out=Out(dict))
-def load_pipeline_settings_op(_: OpExecutionContext) -> dict:
+def load_pipeline_settings_op(context: OpExecutionContext) -> dict:
     """Load the shared pipeline YAML used by local execution and Dagster."""
 
+    del context
     return load_pipeline_config(REPOSITORY_ROOT / "conf" / "pipeline.yml")
 
 
@@ -65,9 +66,10 @@ def emit_pipeline_health_op(context: OpExecutionContext, summary: PipelineRunSum
 
 
 @op(out=Out(str))
-def validate_dbt_environment_op(_: OpExecutionContext, settings: dict) -> str:
+def validate_dbt_environment_op(context: OpExecutionContext, settings: dict) -> str:
     """Validate that the dbt runtime can be resolved before a scheduled run."""
 
+    del context
     dbt_executable = resolve_dbt_executable()
     dbt_project_dir = str(settings["dbt"]["project_dir"])
     profiles_dir = str((REPOSITORY_ROOT / str(settings["dbt"]["profiles_dir"])).resolve())

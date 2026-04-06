@@ -49,6 +49,19 @@ class GoldExportSummary:
         return payload
 
 
+def _parse_warehouse_timestamp(raw_timestamp: str) -> datetime:
+    """Parse warehouse timestamps from DuckDB exports into timezone-aware datetimes."""
+
+    parsed = pd.to_datetime(raw_timestamp, utc=False)
+    if pd.isna(parsed):
+        raise ValueError(f"Invalid warehouse timestamp: {raw_timestamp}")
+
+    parsed_dt = parsed.to_pydatetime()
+    if parsed_dt.tzinfo is None:
+        parsed_dt = parsed_dt.replace(tzinfo=timezone.utc)
+    return parsed_dt
+
+
 def export_gold_tables(
     *,
     warehouse_path: Path,
@@ -87,9 +100,7 @@ def export_gold_tables(
 
         freshness_within_threshold = None
         if latest_generator_timestamp is not None:
-            latest_generated_at = datetime.fromisoformat(latest_generator_timestamp)
-            if latest_generated_at.tzinfo is None:
-                latest_generated_at = latest_generated_at.replace(tzinfo=timezone.utc)
+            latest_generated_at = _parse_warehouse_timestamp(latest_generator_timestamp)
             freshness_within_threshold = (
                 exported_at - latest_generated_at
             ).total_seconds() <= freshness_threshold_hours * 3600

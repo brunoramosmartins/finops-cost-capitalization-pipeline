@@ -8,7 +8,9 @@ from pathlib import Path
 import duckdb
 import pandas as pd
 
-from finops_capex.exports.gold_exporter import export_gold_tables
+from datetime import timezone
+
+from finops_capex.exports.gold_exporter import _parse_warehouse_timestamp, export_gold_tables
 
 
 def build_export_fixture_database(warehouse_path: Path) -> None:
@@ -121,3 +123,14 @@ def test_export_gold_tables_writes_manifest_and_artifacts(tmp_path: Path) -> Non
     artifact_path = export_root / summary.artifacts[0].relative_path
     assert artifact_path.exists()
     assert len(pd.read_parquet(artifact_path)) == summary.artifacts[0].row_count
+
+
+def test_parse_warehouse_timestamp_handles_duckdb_string_format() -> None:
+    """Timestamp parsing should tolerate DuckDB string casts used in export metadata."""
+
+    parsed = _parse_warehouse_timestamp("2026-04-06 16:26:44.90767")
+
+    assert parsed.year == 2026
+    assert parsed.month == 4
+    assert parsed.day == 6
+    assert parsed.tzinfo == timezone.utc
