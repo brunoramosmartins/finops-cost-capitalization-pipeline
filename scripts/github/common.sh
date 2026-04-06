@@ -106,42 +106,47 @@ parse_roadmap_issues() {
       in_body = 0
     }
 
-    /^#### Issue: `/ {
+    {
+      line = $0
+      sub(/\r$/, "", line)
+    }
+
+    line ~ /^#### Issue: `/ {
       flush_issue()
-      title = $0
+      title = line
       sub(/^#### Issue: `/, "", title)
       sub(/`$/, "", title)
       next
     }
 
-    /^\*\*Labels:\*\*: / {
-      labels = $0
+    line ~ /^\*\*Labels:\*\*: / {
+      labels = line
       sub(/^\*\*Labels:\*\*: /, "", labels)
       gsub(/`/, "", labels)
       gsub(/, /, ",", labels)
       next
     }
 
-    /^\*\*Milestone:\*\*: / {
-      milestone = $0
+    line ~ /^\*\*Milestone:\*\*: / {
+      milestone = line
       sub(/^\*\*Milestone:\*\*: /, "", milestone)
       gsub(/`/, "", milestone)
       next
     }
 
-    /^```md$/ && title != "" {
+    line ~ /^```md$/ && title != "" {
       in_body = 1
       body = ""
       next
     }
 
-    /^```$/ && in_body == 1 {
+    line ~ /^```$/ && in_body == 1 {
       in_body = 0
       next
     }
 
     in_body == 1 {
-      body = body $0 "\n"
+      body = body line "\n"
       next
     }
 
