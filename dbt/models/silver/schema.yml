@@ -32,6 +32,20 @@ models:
           - accepted_values:
               arguments:
                 values: ['Usage', 'Discount', 'Credit']
+      - name: unblended_cost
+        description: Standardized unblended cost after typing and normalization.
+        tests:
+          - non_negative_unless_type:
+              arguments:
+                type_column: line_item_type
+                exempt_types: ['Credit', 'Discount']
+      - name: blended_cost
+        description: Standardized blended cost after typing and normalization.
+        tests:
+          - non_negative_unless_type:
+              arguments:
+                type_column: line_item_type
+                exempt_types: ['Credit', 'Discount']
       - name: tag_quality_status
         description: Evaluation of critical tag completeness and validity.
         tests:
@@ -48,6 +62,10 @@ models:
         tests:
           - not_null
           - unique
+          - relationships:
+              arguments:
+                to: ref('stg_cloud_cost_usage')
+                field: line_item_id
 
   - name: int_cost_enriched
     description: >
@@ -61,6 +79,14 @@ models:
           - unique
       - name: service_family
         description: Service family from the accounting policy seed.
+      - name: service
+        description: Cloud service used to join into the seeded accounting policy defaults.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('accounting_policy_defaults')
+                field: service
       - name: accounting_signal
         description: High-level reasoning signal passed into Gold classification.
         tests:

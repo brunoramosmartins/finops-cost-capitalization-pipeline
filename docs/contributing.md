@@ -10,7 +10,13 @@
 pip install -e ".[dev]"
 ```
 
-4. Run tests with `pytest`.
+4. Install local Git hooks:
+
+```bash
+pre-commit install
+```
+
+5. Run tests with `pytest`.
 
 ## Repository Standards
 
@@ -39,7 +45,7 @@ This command creates:
 After generating raw data, run dbt locally:
 
 ```bash
-export DBT_PROFILES_DIR=dbt
+export DBT_PROFILES_DIR="$(pwd)/dbt"
 dbt seed --project-dir dbt
 dbt run --project-dir dbt
 dbt test --project-dir dbt
@@ -47,8 +53,26 @@ dbt test --project-dir dbt
 
 The default dbt profile writes to `warehouse/finops.duckdb`.
 
+## Phase 3 Workflow
+
+Use the full local pipeline command when you want generator, dbt, and runtime
+metadata to run together:
+
+```bash
+finops-run-pipeline --days 90
+```
+
+For pre-merge validation:
+
+```bash
+pre-commit run --all-files
+ruff check .
+pytest
+```
+
 ## GitHub Workflow
 
 - issues should be created from the roadmap
 - changes should be linked to the correct milestone and phase label
 - PR descriptions should include validation details
+- CI must stay green for Python quality and analytics pipeline jobs

@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  quality:
+  python-quality:
     runs-on: ubuntu-latest
 
     steps:
@@ -29,3 +29,52 @@ jobs:
 
       - name: Test
         run: pytest
+
+  analytics-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Generate synthetic billing data
+        run: finops-generate --days 90 --output-format parquet
+
+      - name: Lint SQL models
+        run: sqlfluff lint dbt/models dbt/tests
+
+      - name: Validate Dagster definitions
+        run: python -c "from orchestration.dagster_project.definitions import defs; print(defs.get_job_def('daily_finops_pipeline').name)"
+
+      - name: Run dbt debug
+        env:
+          DBT_PROFILES_DIR: dbt
+        run: dbt debug --project-dir dbt
+
+      - name: Run dbt build
+        env:
+          DBT_PROFILES_DIR: dbt
+        run: |
+          dbt seed --project-dir dbt
+          dbt run --project-dir dbt
+          dbt test --project-dir dbt
+
+      - name: Upload dbt logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-logs
+          path: |
+            dbt/logs
+            dbt/target
+            local_lake/metadata

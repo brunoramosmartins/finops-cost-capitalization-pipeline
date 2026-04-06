@@ -6,11 +6,13 @@ import argparse
 import logging
 from pathlib import Path
 
-import yaml
-
-from finops_capex.generators import GenerationConfig, SyntheticBillingGenerator
+from finops_capex.generators import (
+    GenerationConfig,
+    SyntheticBillingGenerator,
+    build_generation_runtime_config,
+    load_generator_profile,
+)
 from finops_capex.ingestion.lake_writer import write_raw_billing_batch
-from finops_capex.utils.dates import parse_iso_date
 from finops_capex.utils.logging import configure_logging
 
 LOGGER = logging.getLogger(__name__)
@@ -63,38 +65,15 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_profile(config_path: Path, profile_name: str) -> dict[str, object]:
-    """Load a named generator profile from YAML."""
-
-    config_payload = yaml.safe_load(config_path.read_text(encoding="utf-8"))
-    try:
-        return config_payload[profile_name]
-    except KeyError as exc:
-        raise KeyError(f"Profile '{profile_name}' not found in {config_path}.") from exc
-
-
 def build_generation_config(args: argparse.Namespace) -> tuple[GenerationConfig, str, int]:
     """Build runtime configuration plus persistence options."""
 
-    profile = load_profile(Path(args.config), args.profile)
-    if args.run_date:
-        run_date = parse_iso_date(args.run_date)
-    elif "run_date" in profile:
-        run_date = parse_iso_date(str(profile["run_date"]))
-    else:
-        run_date = parse_iso_date("2026-04-06")
-
-    config = GenerationConfig(
-        days=args.days or int(profile["days"]),
-        seed=args.seed or int(profile["seed"]),
-        payer_account_id=str(profile["payer_account_id"]),
-        linked_accounts=tuple(profile["linked_accounts"]),
-        regions=tuple(profile["regions"]),
-        run_date=run_date,
-        imperfect_tag_rate=float(profile["imperfect_tag_rate"]),
-        credit_row_rate=float(profile["credit_row_rate"]),
-        event_spike_rate=float(profile["event_spike_rate"]),
-        accounting_policy_version=str(profile["accounting_policy_version"]),
+    profile = load_generator_profile(Path(args.config), args.profile)
+    config = build_generation_runtime_config(
+        profile,
+        days_override=args.days,
+        seed_override=args.seed,
+        run_date_override=args.run_date,
     )
 
     output_format = args.output_format or str(profile["output_format"])

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "finops-cost-capitalization-pipeline"
-version = "0.2.0"
+version = "0.3.0"
 description = "Portfolio-grade Analytics Engineering project for FinOps OPEX vs CAPEX recommendation workflows."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -21,6 +21,7 @@ dependencies = [
   "duckdb>=1.1,<2.0",
   "dbt-core>=1.8,<2.0",
   "dbt-duckdb>=1.8,<2.0",
+  "dagster>=1.8,<2.0",
 ]
 
 [project.optional-dependencies]
@@ -28,10 +29,14 @@ dev = [
   "pytest>=8.0,<9.0",
   "pytest-cov>=5.0,<6.0",
   "ruff>=0.5,<0.8",
+  "pre-commit>=3.7,<5.0",
+  "sqlfluff>=3.1,<4.0",
+  "sqlfluff-templater-dbt>=3.1,<4.0",
 ]
 
 [project.scripts]
 finops-generate = "finops_capex.cli.generate_billing_data:main"
+finops-run-pipeline = "finops_capex.pipeline.cli:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }
