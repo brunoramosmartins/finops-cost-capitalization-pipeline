@@ -60,56 +60,105 @@ trap 'rm -rf "${tmp_dir}"' EXIT
 
 created_count=0
 skipped_count=0
+parsed_count=0
+current_title=""
+current_labels=""
+current_milestone=""
+current_body=""
+in_body="false"
 
 log "Preparing issues from ${ROADMAP_PATH}"
 
-while IFS= read -r -d $'\x1e' record; do
-  [[ -n "${record}" ]] || continue
-
-  IFS=$'\x1f' read -r title labels milestone body <<< "${record}"
+create_issue_from_buffer() {
+  [[ -n "${current_title}" ]] || return 0
 
   if [[ -n "${phase_filter}" ]]; then
-    case ",${labels}," in
+    case ",${current_labels}," in
       *",${phase_filter},"*) ;;
       *)
-        continue
+        return 0
         ;;
     esac
   fi
 
-  existing_number="$(find_issue_number "${repo}" "${title}")"
+  existing_number="$(find_issue_number "${repo}" "${current_title}")"
   if [[ -n "${existing_number}" ]]; then
-    log "Skipping existing issue #${existing_number}: ${title}"
+    log "Skipping existing issue #${existing_number}: ${current_title}"
     skipped_count=$((skipped_count + 1))
-    continue
+    return 0
   fi
 
   if [[ "${dry_run}" == "true" ]]; then
-    log "Dry run - would create issue: ${title}"
-    log "  labels: ${labels}"
-    log "  milestone: ${milestone}"
+    log "Dry run - would create issue: ${current_title}"
+    log "  labels: ${current_labels}"
+    log "  milestone: ${current_milestone}"
     created_count=$((created_count + 1))
-    continue
+    return 0
   fi
 
   body_file="${tmp_dir}/issue-body-${created_count}.md"
-  printf '%s' "${body}" > "${body_file}"
+  printf '%s' "${current_body}" > "${body_file}"
 
   label_args=()
-  IFS=',' read -r -a label_names <<< "${labels}"
+  IFS=',' read -r -a label_names <<< "${current_labels}"
   for label_name in "${label_names[@]}"; do
     label_args+=( --label "${label_name}" )
   done
 
   gh issue create \
     --repo "${repo}" \
-    --title "${title}" \
+    --title "${current_title}" \
     --body-file "${body_file}" \
     "${label_args[@]}" \
-    --milestone "${milestone}" >/dev/null
+    --milestone "${current_milestone}" >/dev/null
 
-  log "Created issue: ${title}"
+  log "Created issue: ${current_title}"
   created_count=$((created_count + 1))
+}
+
+while IFS= read -r line || [[ -n "${line}" ]]; do
+  case "${line}" in
+    "<<<ISSUE_START>>>")
+      current_title=""
+      current_labels=""
+      current_milestone=""
+      current_body=""
+      in_body="false"
+      ;;
+    "TITLE: "*)
+      current_title="${line#TITLE: }"
+      ;;
+    "LABELS: "*)
+      current_labels="${line#LABELS: }"
+      ;;
+    "MILESTONE: "*)
+      current_milestone="${line#MILESTONE: }"
+      ;;
+    "BODY_START")
+      in_body="true"
+      ;;
+    "BODY_END")
+      in_body="false"
+      ;;
+    "<<<ISSUE_END>>>")
+      parsed_count=$((parsed_count + 1))
+      create_issue_from_buffer
+      current_title=""
+      current_labels=""
+      current_milestone=""
+      current_body=""
+      in_body="false"
+      ;;
+    *)
+      if [[ "${in_body}" == "true" ]]; then
+        current_body+="${line}"$'\n'
+      fi
+      ;;
+  esac
 done < <(parse_roadmap_issues "${ROADMAP_PATH}")
+
+if [[ "${parsed_count}" -eq 0 ]]; then
+  die "No issues were parsed from ROADMAP.md. Check the issue catalog format."
+fi
 
 log "Issue bootstrap completed. Created: ${created_count}. Skipped: ${skipped_count}."

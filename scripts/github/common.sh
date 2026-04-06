@@ -87,7 +87,17 @@ parse_roadmap_issues() {
   awk '
     function flush_issue() {
       if (title != "" && labels != "" && milestone != "" && body != "") {
-        printf "%s\037%s\037%s\037%s\036", title, labels, milestone, body
+        print "<<<ISSUE_START>>>"
+        print "TITLE: " title
+        print "LABELS: " labels
+        print "MILESTONE: " milestone
+        print "BODY_START"
+        printf "%s", body
+        if (body !~ /\n$/) {
+          print ""
+        }
+        print "BODY_END"
+        print "<<<ISSUE_END>>>"
       }
       title = ""
       labels = ""
