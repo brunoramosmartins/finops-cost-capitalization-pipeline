@@ -76,6 +76,9 @@ def test_pipeline_run_summary_serialization_keeps_nested_stage_results() -> None
         metadata_file="local_lake/metadata/pipeline_runs/run_date=2026-04-06/run_summary.json",
         warehouse_path="warehouse/finops.duckdb",
         dbt_artifact_path="dbt/target/run_results.json",
+        gold_export_manifest_file="local_lake/gold/ml_handoff/version=v0.4.0/snapshot_date=2026-04-06/export_manifest.json",
+        gold_export_root="local_lake/gold/ml_handoff",
+        gold_export_version="v0.4.0",
         stage_results=[
             PipelineStageResult(
                 stage_name="dbt_run",
@@ -92,10 +95,12 @@ def test_pipeline_run_summary_serialization_keeps_nested_stage_results() -> None
             latest_billing_month="2026-04-01",
             classification_counts={"opex": 7, "capex_eligible": 3},
         ),
+        gold_export_summary=None,
     )
 
     payload = summary.to_dict()
 
     assert payload["stage_results"][0]["stage_name"] == "dbt_run"
     assert payload["warehouse_snapshot"]["gold_row_count"] == 10
+    assert payload["gold_export_version"] == "v0.4.0"
     assert json.loads(json.dumps(payload))["status"] == "success"

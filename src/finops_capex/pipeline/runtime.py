@@ -16,6 +16,7 @@ from typing import Any
 import duckdb
 import yaml
 
+from finops_capex.exports.gold_exporter import GoldExportSummary, export_gold_tables
 from finops_capex.generators import (
     SyntheticBillingGenerator,
     build_generation_runtime_config,
@@ -66,8 +67,12 @@ class PipelineRunSummary:
     metadata_file: str
     warehouse_path: str
     dbt_artifact_path: str
+    gold_export_manifest_file: str | None
+    gold_export_root: str | None
+    gold_export_version: str | None
     stage_results: list[PipelineStageResult]
     warehouse_snapshot: WarehouseQualitySnapshot | None
+    gold_export_summary: GoldExportSummary | None
     error_message: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
@@ -140,6 +145,25 @@ def run_command(
         finished_at=finished.isoformat(),
         duration_seconds=round((finished - started).total_seconds(), 3),
         return_code=completed.returncode,
+    )
+
+
+def build_internal_stage_result(
+    *,
+    stage_name: str,
+    command: list[str],
+    started_at: datetime,
+    finished_at: datetime,
+) -> PipelineStageResult:
+    """Build stage metadata for internal Python-only execution steps."""
+
+    return PipelineStageResult(
+        stage_name=stage_name,
+        command=command,
+        started_at=started_at.isoformat(),
+        finished_at=finished_at.isoformat(),
+        duration_seconds=round((finished_at - started_at).total_seconds(), 3),
+        return_code=0,
     )
 
 
@@ -259,6 +283,10 @@ def run_local_pipeline(
         (repository_root / str(pipeline_config["dbt"]["profiles_dir"])).resolve()
     )
     metadata_root = str(pipeline_config["storage"]["metadata_root"])
+    gold_root = repository_root / str(pipeline_config["storage"]["gold_root"])
+    export_relations = list(pipeline_config["exports"]["include_tables"])
+    export_file_format = str(pipeline_config["exports"]["file_format"])
+    freshness_threshold_hours = int(pipeline_config["observability"]["freshness_threshold_hours"])
 
     started_at = datetime.now(tz=timezone.utc)
     stage_results: list[PipelineStageResult] = []
@@ -308,6 +336,24 @@ def run_local_pipeline(
 
         finished_at = datetime.now(tz=timezone.utc)
         snapshot = collect_warehouse_quality_snapshot(warehouse_path)
+        export_started_at = datetime.now(tz=timezone.utc)
+        export_summary = export_gold_tables(
+            warehouse_path=warehouse_path,
+            export_root=gold_root,
+            snapshot_date=manifest.run_date,
+            relations=export_relations,
+            file_format=export_file_format,
+            freshness_threshold_hours=freshness_threshold_hours,
+        )
+        export_finished_at = datetime.now(tz=timezone.utc)
+        stage_results.append(
+            build_internal_stage_result(
+                stage_name="gold_export",
+                command=["internal", "export_gold_tables"],
+                started_at=export_started_at,
+                finished_at=export_finished_at,
+            )
+        )
         metadata_path = build_metadata_path(
             repository_root=repository_root,
             metadata_root=metadata_root,
@@ -326,8 +372,12 @@ def run_local_pipeline(
             metadata_file=str(metadata_path),
             warehouse_path=str(warehouse_path),
             dbt_artifact_path=dbt_artifact_path,
+            gold_export_manifest_file=export_summary.manifest_file,
+            gold_export_root=export_summary.export_root,
+            gold_export_version=export_summary.export_version,
             stage_results=stage_results,
             warehouse_snapshot=snapshot,
+            gold_export_summary=export_summary,
         )
     except subprocess.CalledProcessError as exc:
         finished_at = datetime.now(tz=timezone.utc)
@@ -351,9 +401,45 @@ def run_local_pipeline(
             metadata_file=str(metadata_path),
             warehouse_path=str(warehouse_path),
             dbt_artifact_path=dbt_artifact_path,
+            gold_export_manifest_file=None,
+            gold_export_root=str(gold_root),
+            gold_export_version=None,
             stage_results=stage_results,
             warehouse_snapshot=None,
+            gold_export_summary=None,
             error_message=f"Command failed with exit code {exc.returncode}: {' '.join(exc.cmd)}",
+        )
+        metadata_path.write_text(json.dumps(summary.to_dict(), indent=2), encoding="utf-8")
+        raise
+    except Exception as exc:
+        finished_at = datetime.now(tz=timezone.utc)
+        LOGGER.exception("Pipeline failed with an internal error.")
+        failed_run_date = run_date_override or datetime.now(tz=timezone.utc).date().isoformat()
+        metadata_path = build_metadata_path(
+            repository_root=repository_root,
+            metadata_root=metadata_root,
+            run_date=failed_run_date,
+        )
+        summary = PipelineRunSummary(
+            project_name=str(pipeline_config["project_name"]),
+            status="failed",
+            run_date=failed_run_date,
+            batch_id=None,
+            row_count=None,
+            started_at=started_at.isoformat(),
+            finished_at=finished_at.isoformat(),
+            data_file=None,
+            sample_file=None,
+            metadata_file=str(metadata_path),
+            warehouse_path=str(warehouse_path),
+            dbt_artifact_path=dbt_artifact_path,
+            gold_export_manifest_file=None,
+            gold_export_root=str(gold_root),
+            gold_export_version=None,
+            stage_results=stage_results,
+            warehouse_snapshot=None,
+            gold_export_summary=None,
+            error_message=str(exc),
         )
         metadata_path.write_text(json.dumps(summary.to_dict(), indent=2), encoding="utf-8")
         raise

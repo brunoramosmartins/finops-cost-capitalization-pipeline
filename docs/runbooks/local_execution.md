@@ -33,6 +33,20 @@ Expected additional output:
 - `local_lake/metadata/pipeline_runs/run_date=YYYY-MM-DD/run_summary.json`
 - refreshed dbt artifacts under `dbt/target/`
 - validated warehouse contents in `warehouse/finops.duckdb`
+- versioned Gold exports under `local_lake/gold/ml_handoff/version=vX.Y.Z/snapshot_date=YYYY-MM-DD/`
+
+## Export Only
+
+To publish the current warehouse state without rerunning generation and dbt:
+
+```bash
+finops-export-gold --snapshot-date 2026-04-06
+```
+
+Expected output:
+
+- exported Gold and mart tables in Parquet
+- `export_manifest.json` with row counts, schema, and freshness metadata
 
 ## Troubleshooting
 

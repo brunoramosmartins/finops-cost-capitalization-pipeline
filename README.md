@@ -15,7 +15,8 @@ CAPEX recommendation layer on top of a Bronze, Silver, Gold architecture.
 - Phase 1 implemented: repository foundation, synthetic billing generation, local data lake
 - Phase 2 implemented: DuckDB warehouse, dbt Bronze/Silver/Gold models, finance-facing marts
 - Phase 3 implemented: stronger dbt quality tests, Dagster orchestration, local pipeline metadata, and CI/CD hardening
-- Local validation completed: generator, `pytest`, `dbt seed`, `dbt run`, and `dbt test`
+- Phase 4 implemented: versioned Gold exports and formal ML handoff contract
+- Local validation completed: generator, `pytest`, `dbt seed`, `dbt run`, `dbt test`, and Gold export
 - Current output: each raw billing line is classified into `opex`, `capex_eligible`, `shared_cost_review`, or `unclassified`
 
 ## Why This Repository Exists
@@ -30,8 +31,9 @@ This project is designed to demonstrate:
 
 ## Current Status
 
-Phases 1, 2, and 3 are implemented as the repository foundation, synthetic data
-generation layer, local dbt transformation stack, and quality-orchestrated execution layer.
+Phases 1, 2, 3, and 4 are implemented as the repository foundation, synthetic
+data generation layer, local dbt transformation stack, quality-orchestrated
+execution layer, and versioned export handoff for downstream ML work.
 The project currently provides:
 
 - a documented repository structure and contribution workflow
@@ -44,6 +46,8 @@ The project currently provides:
 - a Dagster job definition for scheduled local execution
 - pipeline run summaries under `local_lake/metadata/pipeline_runs/`
 - GitHub Actions that validate Python quality, SQL linting, and dbt execution
+- versioned Gold exports under `local_lake/gold/ml_handoff/`
+- a downstream ML handoff contract and repository boundary documentation
 
 ## Architecture
 
@@ -57,9 +61,10 @@ flowchart LR
     F --> G[dbt Gold<br/>fct_cost_classification<br/>fct_capex_candidate_costs]
     G --> H[dbt Marts<br/>mart_monthly_finops_summary<br/>mart_capitalization_waterfall]
     H --> I[Pipeline metadata<br/>run_summary.json]
-    H --> J[Finance analytics and ML handoff]
-    K[Dagster job<br/>daily_finops_pipeline] --> A
-    K --> E
+    H --> J[Versioned Gold export<br/>export_manifest.json]
+    J --> K[Finance analytics and ML handoff]
+    L[Dagster job<br/>daily_finops_pipeline] --> A
+    L --> E
 ```
 
 The warehouse model can also be opened in `dbdiagram.io` using
@@ -127,6 +132,7 @@ Current analytical outputs include:
 - Silver standardization and metadata quality signals
 - Gold accounting recommendation facts
 - monthly finance-facing marts
+- versioned Parquet exports for downstream forecasting
 
 ## Quick Start
 
@@ -164,7 +170,13 @@ dbt test --project-dir dbt
 finops-run-pipeline --days 90
 ```
 
-7. Validate a few warehouse outputs:
+7. Export the Gold product independently when needed:
+
+```bash
+finops-export-gold --snapshot-date 2026-04-06
+```
+
+8. Validate a few warehouse outputs:
 
 ```bash
 python -c "import duckdb; con=duckdb.connect('warehouse/finops.duckdb'); print(con.execute('show all tables').fetchdf())"
@@ -176,13 +188,14 @@ For the latest validated local run, both Bronze and Gold materialized the same
 line count, confirming that every raw billing line reached the classification
 layer.
 
-## What You Should Have After Phase 2
+## What You Should Have After Phase 4
 
 - raw Parquet and manifest files under `local_lake/raw/cloud_costs/run_date=.../`
 - local DuckDB warehouse at `warehouse/finops.duckdb`
 - dbt schemas: `analytics_reference`, `analytics_bronze`, `analytics_silver`, `analytics_gold`, and `analytics_marts`
 - classification outputs that separate direct operational spend from CAPEX candidates and review-required shared costs
 - run metadata under `local_lake/metadata/pipeline_runs/run_date=.../run_summary.json`
+- versioned Gold exports under `local_lake/gold/ml_handoff/version=vX.Y.Z/snapshot_date=.../`
 
 ## Repository Highlights
 
@@ -202,6 +215,8 @@ layer.
 - [docs/contributing.md](docs/contributing.md): local development workflow
 - [docs/assistant/project_context.md](docs/assistant/project_context.md): assistant-facing project context
 - [data/contracts/raw_cloud_cost_usage.yml](data/contracts/raw_cloud_cost_usage.yml): raw data contract
+- [data/contracts/gold_ml_handoff.yml](data/contracts/gold_ml_handoff.yml): downstream ML export contract
+- [docs/ml_handoff.md](docs/ml_handoff.md): Project 2 bootstrap and ownership boundary
 - [docs/runbooks/dbt_local_execution.md](docs/runbooks/dbt_local_execution.md): dbt execution guide
 - [docs/runbooks/ci_cd.md](docs/runbooks/ci_cd.md): CI and validation runbook
 - [docs/runbooks/incident_response.md](docs/runbooks/incident_response.md): failure investigation guide

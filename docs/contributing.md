@@ -70,6 +70,20 @@ ruff check .
 pytest
 ```
 
+## Phase 4 Workflow
+
+Use the versioned export command when you want to publish the latest Gold
+product for downstream ML consumption:
+
+```bash
+finops-export-gold --snapshot-date 2026-04-06
+```
+
+This writes:
+
+- versioned Parquet files under `local_lake/gold/ml_handoff/`
+- an export manifest with schema, row counts, and freshness metadata
+
 ## GitHub Workflow
 
 - issues should be created from the roadmap

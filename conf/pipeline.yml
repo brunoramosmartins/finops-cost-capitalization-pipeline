@@ -4,6 +4,7 @@ storage:
   raw_root: local_lake/raw/cloud_costs
   sample_root: data/sample
   metadata_root: local_lake/metadata/pipeline_runs
+  gold_root: local_lake/gold/ml_handoff
 warehouse:
   path: warehouse/finops.duckdb
 dbt:
@@ -17,3 +18,10 @@ observability:
   freshness_threshold_hours: 24
 orchestration:
   schedule_cron: "0 6 * * *"
+exports:
+  file_format: parquet
+  include_tables:
+    - analytics_gold.fct_cost_classification
+    - analytics_gold.fct_capex_candidate_costs
+    - analytics_marts.mart_monthly_finops_summary
+    - analytics_marts.mart_capitalization_waterfall

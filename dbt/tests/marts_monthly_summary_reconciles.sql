@@ -19,12 +19,15 @@ select
     gold_aggregated.expected_line_item_count,
     mart.total_unblended_cost,
     gold_aggregated.expected_total_unblended_cost
-from {{ ref('mart_monthly_finops_summary') }} as mart
+from
+    {{ ref('mart_monthly_finops_summary') }} as mart
 left join gold_aggregated
-    on mart.billing_month = gold_aggregated.billing_month
-   and coalesce(mart.owner_team, '') = coalesce(gold_aggregated.owner_team, '')
-   and coalesce(mart.product_line, '') = coalesce(gold_aggregated.product_line, '')
-   and mart.classification_status = gold_aggregated.classification_status
-where gold_aggregated.billing_month is null
-   or mart.line_item_count <> gold_aggregated.expected_line_item_count
-   or abs(mart.total_unblended_cost - gold_aggregated.expected_total_unblended_cost) > 0.0001
+    on
+        mart.billing_month = gold_aggregated.billing_month
+        and coalesce(mart.owner_team, '') = coalesce(gold_aggregated.owner_team, '')
+        and coalesce(mart.product_line, '') = coalesce(gold_aggregated.product_line, '')
+        and mart.classification_status = gold_aggregated.classification_status
+where
+    gold_aggregated.billing_month is null
+    or mart.line_item_count <> gold_aggregated.expected_line_item_count
+    or abs(mart.total_unblended_cost - gold_aggregated.expected_total_unblended_cost) > 0.0001

@@ -46,14 +46,18 @@ select
         when usage.tag_quality_status = 'invalid_capitalization_flag' then 'invalid_capitalization_metadata'
         when usage.tag_quality_status = 'missing_critical_tags' then 'missing_critical_tags'
         when usage.shared_service_flag or policy.shared_service_default then 'shared_service'
-        when usage.capitalization_candidate_flag
-             and usage.initiative_stage in ('build', 'implementation')
-             and coalesce(usage.environment, 'prod') in ('prod', 'staging')
-             and coalesce(policy.capex_service_eligible, false) then 'direct_build_cost'
+        when
+            usage.capitalization_candidate_flag
+            and usage.initiative_stage in ('build', 'implementation')
+            and coalesce(usage.environment, 'prod') in ('prod', 'staging')
+            and coalesce(policy.capex_service_eligible, false)
+            then 'direct_build_cost'
         when usage.initiative_stage in ('operate', 'support') then 'operate_support'
         when coalesce(usage.environment, 'prod') in ('sandbox', 'test') then 'non_production'
         else 'other'
     end as accounting_signal
-from {{ ref('stg_cloud_cost_usage') }} as usage
+from
+    {{ ref('stg_cloud_cost_usage') }} as usage
 left join {{ ref('accounting_policy_defaults') }} as policy
-    on usage.service = policy.service
+    on
+        usage.service = policy.service
