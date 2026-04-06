@@ -69,6 +69,9 @@ jobs:
           dbt run --project-dir dbt
           dbt test --project-dir dbt
 
+      - name: Export versioned Gold product
+        run: finops-export-gold --snapshot-date 2026-04-06
+
       - name: Upload dbt logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -78,3 +81,4 @@ jobs:
             dbt/logs
             dbt/target
             local_lake/metadata
+            local_lake/gold

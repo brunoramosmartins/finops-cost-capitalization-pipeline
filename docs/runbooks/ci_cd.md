@@ -24,6 +24,7 @@ The repository CI is designed to validate three risk areas on every push and pul
 - import Dagster definitions
 - run `dbt debug`
 - run `dbt seed`, `dbt run`, and `dbt test`
+- run `finops-export-gold` to validate the downstream handoff product
 
 ## Local Parity Commands
 
@@ -32,6 +33,7 @@ From the repository root:
 ```bash
 pre-commit run --all-files
 finops-run-pipeline --days 90
+finops-export-gold --snapshot-date 2026-04-06
 ```
 
 ## Failure Handling

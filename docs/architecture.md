@@ -34,6 +34,15 @@ Phase 3 adds operational rigor on top of the analytical stack:
 - run metadata publication for each execution
 - CI jobs that validate Python, SQL, and dbt behavior together
 
+## Phase 4 Scope
+
+Phase 4 turns the analytical warehouse into a versioned product:
+
+- export selected Gold and mart tables as versioned snapshots
+- emit export manifests with schema, row counts, and freshness metadata
+- define the formal downstream contract for ML consumption
+- document the second-repository boundary and bootstrap path
+
 ## Data Flow
 
 ```mermaid
@@ -48,9 +57,10 @@ flowchart LR
     H --> I[dbt Gold]
     I --> J[dbt Marts]
     J --> K[Run metadata and observability]
-    J --> L[Finance consumption and ML handoff]
-    M[Dagster schedule] --> B
-    M --> G
+    J --> L[Versioned Gold export]
+    L --> M[Finance consumption and ML handoff]
+    N[Dagster schedule] --> B
+    N --> G
 ```
 
 ## Warehouse Model
@@ -72,5 +82,4 @@ Core lineage:
 
 ## Next Architectural Step
 
-Phase 4 will publish versioned Gold exports and formalize the ML handoff
-contract on top of the current quality-hardened analytics stack.
+Phase 4 is now the formal delivery boundary for the downstream ML repository.

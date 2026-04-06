@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "finops-cost-capitalization-pipeline"
-version = "0.3.0"
+version = "0.4.0"
 description = "Portfolio-grade Analytics Engineering project for FinOps OPEX vs CAPEX recommendation workflows."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -37,6 +37,7 @@ dev = [
 [project.scripts]
 finops-generate = "finops_capex.cli.generate_billing_data:main"
 finops-run-pipeline = "finops_capex.pipeline.cli:main"
+finops-export-gold = "finops_capex.exports.cli:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }

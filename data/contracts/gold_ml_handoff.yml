@@ -1,0 +1,119 @@
+contract_name: gold_ml_handoff
+version: "2026.1"
+owner: analytics-engineering
+status: draft
+description: >
+  Contract for versioned Gold exports consumed by the downstream forecasting and
+  MLOps repository.
+
+freshness:
+  source_relation: analytics_gold.fct_cost_classification
+  freshness_timestamp_column: generated_at_utc
+  max_lag_hours: 24
+  delivery_pattern: snapshot
+
+export_layout:
+  root: local_lake/gold/ml_handoff
+  version_partition: version=vX.Y.Z
+  snapshot_partition: snapshot_date=YYYY-MM-DD
+  manifest_file: export_manifest.json
+  file_format: parquet
+
+tables:
+  - name: analytics_gold.fct_cost_classification
+    grain: one row per billing line item
+    primary_key:
+      - line_item_id
+    purpose: >
+      Canonical labeled dataset for rule-based accounting recommendation and
+      downstream supervised learning experiments.
+    required_columns:
+      - line_item_id
+      - usage_start_time_utc
+      - service
+      - service_family
+      - owner_team
+      - product_line
+      - unblended_cost
+      - blended_cost
+      - classification_status
+      - classification_reason
+      - review_required_flag
+      - policy_version
+    accepted_values:
+      classification_status:
+        - opex
+        - capex_eligible
+        - shared_cost_review
+        - unclassified
+
+  - name: analytics_gold.fct_capex_candidate_costs
+    grain: one row per CAPEX-eligible billing line item
+    primary_key:
+      - line_item_id
+    purpose: >
+      Narrowed export for capitalization-focused modeling, review queues, and
+      amortization analysis.
+    required_columns:
+      - line_item_id
+      - usage_start_time_utc
+      - linked_account_id
+      - service
+      - service_family
+      - owner_team
+      - product_line
+      - initiative_id
+      - initiative_stage
+      - asset_lifecycle
+      - policy_version
+      - amortization_months_default
+      - unblended_cost
+      - blended_cost
+
+  - name: analytics_marts.mart_monthly_finops_summary
+    grain: one row per month, owner team, product line, and classification status
+    primary_key:
+      - billing_month
+      - owner_team
+      - product_line
+      - classification_status
+    purpose: >
+      Primary monthly time-series table for forecasting cost classes and
+      producing downstream training sets.
+    required_columns:
+      - billing_month
+      - owner_team
+      - product_line
+      - classification_status
+      - line_item_count
+      - total_unblended_cost
+      - total_blended_cost
+      - review_cost_total
+      - capex_eligible_cost_total
+      - opex_cost_total
+
+  - name: analytics_marts.mart_capitalization_waterfall
+    grain: one row per month, service family, classification status, and classification reason
+    primary_key:
+      - billing_month
+      - service_family
+      - classification_status
+      - classification_reason
+    purpose: >
+      Explainability-focused export that preserves the reasoning path from raw
+      cost to monthly accounting recommendation totals.
+    required_columns:
+      - billing_month
+      - service_family
+      - classification_status
+      - classification_reason
+      - line_item_count
+      - total_unblended_cost
+      - total_blended_cost
+
+consumer_expectations:
+  null_handling:
+    owner_team: allowed only for incomplete or weakly tagged records
+    initiative_id: allowed for non-capex and shared-cost lines
+  backwards_compatibility: additive changes only between prerelease tags
+  reconciliation_rule: exported row counts must match warehouse row counts

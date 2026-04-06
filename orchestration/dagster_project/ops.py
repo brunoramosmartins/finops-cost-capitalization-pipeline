@@ -40,6 +40,8 @@ def run_daily_finops_pipeline_op(context: OpExecutionContext, settings: dict) ->
             "run_date": summary.run_date,
             "batch_id": summary.batch_id or "n/a",
             "metadata_file": summary.metadata_file,
+            "gold_export_manifest": summary.gold_export_manifest_file or "n/a",
+            "gold_export_version": summary.gold_export_version or "n/a",
         }
     )
     return summary

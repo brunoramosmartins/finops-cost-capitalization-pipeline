@@ -10,8 +10,11 @@ select
     manifest.batch_id,
     manifest.row_count as manifest_row_count,
     usage_counts.usage_row_count
-from {{ ref('brz_generation_manifest') }} as manifest
+from
+    {{ ref('brz_generation_manifest') }} as manifest
 left join usage_counts
-    on manifest.batch_id = usage_counts.batch_id
-where usage_counts.batch_id is null
-   or manifest.row_count <> usage_counts.usage_row_count
+    on
+        manifest.batch_id = usage_counts.batch_id
+where
+    usage_counts.batch_id is null
+    or manifest.row_count <> usage_counts.usage_row_count
