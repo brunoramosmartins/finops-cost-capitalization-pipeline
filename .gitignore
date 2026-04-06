@@ -1,0 +1,79 @@
+# OS and editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE settings
+.idea/
+.vscode/
+*.code-workspace
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.crt
+secrets/
+
+# Build and packaging artifacts
+build/
+dist/
+site/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Logs and runtime artifacts
+*.log
+logs/
+tmp/
+temp/
+
+# Local analytical storage
+local_lake/
+warehouse/
+*.duckdb
+*.duckdb.wal
+*.db
+*.sqlite
+*.sqlite3
+
+# dbt artifacts
+dbt_packages/
+target/
+dbt.log
+logs/dbt.log
+
+# Dagster artifacts
+.dagster/
+.dagster_home/
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Project-local temporary files
+*.tmp
+*.bak
+*.swp
