@@ -47,7 +47,11 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = "-ra"
+markers = [
+  "integration: exercises the dbt CLI against an isolated DuckDB file (slower than unit tests)",
+]
 
 [tool.ruff]
 line-length = 100

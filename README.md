@@ -205,6 +205,10 @@ That distinction is important:
 
 So this is not a mixed real-plus-fake billing repository. It is a synthetic-source project with a real Analytics Engineering and FinOps workflow built on top of it.
 
+### Security and credentials
+
+Do not commit cloud provider credentials, private billing extracts, or production connection strings. This project is designed to run on **synthetic** data; keep real FinOps datasets out of git and use secret stores in any shared environment.
+
 That is intentional and portfolio-appropriate:
 
 - no confidential billing data is required,
@@ -249,6 +253,14 @@ Explicitly out of scope for this repository:
 
 Those are intentionally reserved for the downstream ML repository described in [docs/ml_handoff.md](docs/ml_handoff.md).
 
+## Roadmap at a glance
+
+The full phased plan lives in [ROADMAP.md](ROADMAP.md). Status in short:
+
+- **Done:** synthetic billing generator, local lake layout, dbt Bronze/Silver/Gold/marts, accounting recommendation logic, pipeline metadata, versioned Gold export, Dagster job for local scheduling, CI (Python, SQLFluff, dbt, export smoke).
+- **In progress / next:** tighter `dagster-dbt` integration for asset-aware runs (see ROADMAP orchestration notes).
+- **Deferred:** training, serving, and production cloud deployment (downstream ML repo).
+
 ## Repository Walkthrough
 
 Core implementation:
@@ -273,6 +285,20 @@ Project documentation:
 
 ## Quick Start
 
+### From zero to a green run (clean machine)
+
+1. **Clone** the repository and open a terminal at the repo root.
+2. **Python 3.10+**: create and activate a virtual environment (`python -m venv .venv` then activate per your OS).
+3. **Install** dependencies: `pip install -e ".[dev]"` (pulls `dbt-core`, `dbt-duckdb`, Dagster, and dev tools).
+4. **Generate** a synthetic batch: `finops-generate --days 90 --output-format parquet` (writes under `local_lake/` and samples under `data/sample/`).
+5. **Run** the full pipeline: `finops-run-pipeline --days 90` (dbt + metadata + export steps as configured in `conf/pipeline.yml`).
+6. **Verify** with tests: `pytest` (includes a marked **integration** test that runs `dbt seed` / `run` / `test` against an isolated DuckDB file; allow ~30s for that case).
+7. **Optional — Dagster UI:** `dagster dev -m orchestration.dagster_project.definitions` from the repo root to explore the packaged job and schedules.
+
+If anything fails, see [docs/runbooks/local_execution.md](docs/runbooks/local_execution.md) and [docs/runbooks/ci_cd.md](docs/runbooks/ci_cd.md).
+
+### Common commands
+
 Install dependencies:
 
 ```bash
@@ -291,6 +317,24 @@ Run tests:
 pytest
 ```
 
+Run only fast tests (skip dbt integration):
+
+```bash
+pytest -m "not integration"
+```
+
+Run the integration dbt smoke only:
+
+```bash
+pytest -m integration
+```
+
+Measure Python coverage (optional):
+
+```bash
+pytest --cov=finops_capex --cov-report=term-missing
+```
+
 Run the full local pipeline:
 
 ```bash
@@ -302,6 +346,23 @@ Export the current Gold product:
 ```bash
 finops-export-gold --snapshot-date 2026-04-06
 ```
+
+## CLI versus Dagster
+
+- **`finops-run-pipeline`** (and the individual CLIs) are the straightforward way to run or debug the pipeline from a shell, reproduce CI locally, and script one-off runs. Configuration comes from `conf/pipeline.yml` and `conf/` profiles.
+- **Dagster** (`orchestration/dagster_project/`) packages the same stages as a scheduled **job** (`daily_finops_pipeline`) for local-first automation, observability in the Dagster UI, and a clear path to richer orchestration later.
+- **Next step (see [ROADMAP.md](ROADMAP.md)):** wiring **`dagster-dbt`** so dbt models appear as Dagster assets is planned; today the job invokes the existing Python/dbt runtime rather than a full asset graph.
+
+## Testing and coverage
+
+Unit tests cover the generator, pipeline runtime, Gold exporter, and Dagster definitions load. The **integration** test `tests/integration/test_dbt_pipeline_e2e.py` lands a small synthetic Parquet batch in a temporary directory, points dbt vars at those globs, sets `FINOPS_DUCKDB_PATH` to an isolated DuckDB file, and runs `dbt seed`, `dbt run`, and `dbt test` — closely mirroring the assumptions validated in CI.
+
+Use `pytest --cov=finops_capex` when you want a coverage report before a release or portfolio refresh.
+
+## Contracts and releases
+
+- **YAML data contracts:** [data/contracts/raw_cloud_cost_usage.yml](data/contracts/raw_cloud_cost_usage.yml) (raw billing) and [data/contracts/gold_ml_handoff.yml](data/contracts/gold_ml_handoff.yml) (ML handoff).
+- **Version history and breaking changes:** [CHANGELOG.md](CHANGELOG.md). Bump the package version in `pyproject.toml` when you change export shapes, contract fields, or default table lists in `conf/pipeline.yml` in a way that downstream consumers must react to.
 
 For detailed execution steps, see [docs/runbooks/local_execution.md](docs/runbooks/local_execution.md).
 

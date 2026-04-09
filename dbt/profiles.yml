@@ -3,6 +3,6 @@ finops_capex:
   outputs:
     dev:
       type: duckdb
-      path: warehouse/finops.duckdb
+      path: "{{ env_var('FINOPS_DUCKDB_PATH', 'warehouse/finops.duckdb') }}"
       threads: 4
       schema: analytics
