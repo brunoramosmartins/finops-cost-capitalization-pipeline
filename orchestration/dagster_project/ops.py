@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from dagster import OpExecutionContext, Out, op
+from dagster import Out, op
 
 from finops_capex.pipeline.runtime import (
     PipelineRunSummary,
@@ -20,7 +20,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
 @op(out=Out(dict))
-def load_pipeline_settings_op(context: OpExecutionContext) -> dict:
+def load_pipeline_settings_op(context) -> dict:
     """Load the shared pipeline YAML used by local execution and Dagster."""
 
     del context
@@ -28,7 +28,7 @@ def load_pipeline_settings_op(context: OpExecutionContext) -> dict:
 
 
 @op(out=Out(PipelineRunSummary))
-def run_daily_finops_pipeline_op(context: OpExecutionContext, settings: dict) -> PipelineRunSummary:
+def run_daily_finops_pipeline_op(context, settings: dict) -> PipelineRunSummary:
     """Run the full local-first pipeline and emit summary metadata."""
 
     summary = run_local_pipeline(
@@ -49,7 +49,7 @@ def run_daily_finops_pipeline_op(context: OpExecutionContext, settings: dict) ->
 
 
 @op
-def emit_pipeline_health_op(context: OpExecutionContext, summary: PipelineRunSummary) -> None:
+def emit_pipeline_health_op(context, summary: PipelineRunSummary) -> None:
     """Publish a concise health snapshot for the latest successful pipeline run."""
 
     warehouse_snapshot = summary.warehouse_snapshot or collect_warehouse_quality_snapshot(
@@ -66,7 +66,7 @@ def emit_pipeline_health_op(context: OpExecutionContext, summary: PipelineRunSum
 
 
 @op(out=Out(str))
-def validate_dbt_environment_op(context: OpExecutionContext, settings: dict) -> str:
+def validate_dbt_environment_op(context, settings: dict) -> str:
     """Validate that the dbt runtime can be resolved before a scheduled run."""
 
     del context

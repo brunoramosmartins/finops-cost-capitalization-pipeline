@@ -69,3 +69,13 @@ If running dbt manually, point the profile directory to the repository-local con
 ```bash
 export DBT_PROFILES_DIR="$(pwd)/dbt"
 ```
+
+### Optional: separate DuckDB file path
+
+By default the dev target uses `warehouse/finops.duckdb` (relative to the repository root when dbt is invoked from that root). To use another file — for example in automated tests or a second local experiment — set:
+
+```bash
+export FINOPS_DUCKDB_PATH="/absolute/path/to/your.duckdb"
+```
+
+On Windows PowerShell, use `set FINOPS_DUCKDB_PATH=C:\path\to\your.duckdb` before running dbt.

@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import json
+from datetime import timezone
 from pathlib import Path
 
 import duckdb
 import pandas as pd
-
-from datetime import timezone
 
 from finops_capex.exports.gold_exporter import _parse_warehouse_timestamp, export_gold_tables
 
@@ -109,6 +108,8 @@ def test_export_gold_tables_writes_manifest_and_artifacts(tmp_path: Path) -> Non
             "analytics_marts.mart_monthly_finops_summary",
             "analytics_marts.mart_capitalization_waterfall",
         ],
+        # Fixture timestamps are fixed; widen threshold so the test does not depend on wall clock.
+        freshness_threshold_hours=24 * 365,
     )
 
     manifest_path = Path(summary.manifest_file)
